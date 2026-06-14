@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ledger Desk — AI Bookkeeping & Reconciliation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#0F3D2E; --green-2:#185c44; --gold:#C9A227; --gold-soft:#e7d39a;
+    --paper:#FAF8F3; --paper-2:#F2EEE3; --ink:#1A1A17; --muted:#6b6a5f;
+    --line:#d9d3c4; --ok:#1f7a4d; --warn:#b8860b; --bad:#b23b34;
+    --ok-bg:#e6f3ea; --warn-bg:#fbf3da; --bad-bg:#f8e7e5;
+    --shadow:0 1px 2px rgba(26,26,23,.06),0 8px 24px rgba(15,61,46,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;}
+  .num{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+  h1,h2,h3,.serif{font-family:'Spectral',Georgia,serif}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;font-size:14px}
+  a{color:var(--green-2)}
+  .app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+  .side{background:var(--green);color:#eef0e9;padding:22px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px}
+  .brand{display:flex;align-items:baseline;gap:8px;margin-bottom:18px;padding:0 6px}
+  .brand .mark{font-family:'Spectral',serif;font-size:22px;font-weight:600;color:#fff;letter-spacing:.3px}
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;margin-bottom:2px}
+  .brand small{display:block;color:var(--gold-soft);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-top:2px}
+  .nav{display:flex;flex-direction:column;gap:2px;margin-top:4px;overflow:auto}
+  .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:none;color:#d7ddd2;padding:9px 12px;border-radius:8px;font-size:13.5px;font-weight:500;transition:.15s}
+  .nav button .ic{width:18px;text-align:center;opacity:.9}
+  .nav button:hover{background:rgba(255,255,255,.07);color:#fff}
+  .nav button.active{background:var(--gold);color:#3a2e05;font-weight:600}
+  .side .foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12)}
+  .side .foot button{background:rgba(255,255,255,.08);border:none;color:#dfe6db;padding:8px;border-radius:7px;font-size:12.5px;font-weight:600}
+  .side .foot button:hover{background:rgba(255,255,255,.16)}
+  .side .foot .note{font-size:10.5px;color:#9fb0a4;line-height:1.4}
+  .main{padding:30px 38px 80px;max-width:1180px}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px;gap:16px;flex-wrap:wrap}
+  .page-head h1{margin:0;font-size:30px;font-weight:600;letter-spacing:-.2px}
+  .page-head p{margin:4px 0 0;color:var(--muted);font-size:13.5px;max-width:640px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:600;font-family:'Inter'}
+  .btn{border:1px solid var(--green);background:var(--green);color:#fff;padding:9px 16px;border-radius:8px;font-weight:600;font-size:13.5px;transition:.15s}
+  .btn:hover{background:var(--green-2);border-color:var(--green-2)}
+  .btn.gold{background:var(--gold);border-color:var(--gold);color:#3a2e05}
+  .btn.gold:hover{filter:brightness(1.05)}
+  .btn.ghost{background:#fff;color:var(--green);border-color:var(--line)}
+  .btn.ghost:hover{border-color:var(--green);background:var(--paper-2)}
+  .btn.sm{padding:5px 11px;font-size:12.5px;border-radius:7px}
+  .btn.danger{background:#fff;color:var(--bad);border-color:#e3c4c1}
+  .btn.danger:hover{background:var(--bad-bg)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  .card .hd{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .card .hd h3{margin:0;font-size:16px;font-weight:600}
+  .card .bd{padding:18px}
+  .grid{display:grid;gap:16px}
+  .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)} .g2{grid-template-columns:1fr 1fr}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);font-weight:600;background:var(--paper-2)}
+  td{padding:9px 12px;border-bottom:1px solid #ece7da;font-size:13.5px;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .right{text-align:right} .center{text-align:center} .muted{color:var(--muted)}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .stat .lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+  .stat .val{font-size:25px;font-weight:600;margin-top:6px;font-family:'JetBrains Mono';letter-spacing:-.5px}
+  .stat .sub{font-size:12px;color:var(--muted);margin-top:2px}
+  .field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+  .field label{font-size:12px;font-weight:600;color:#444}
+  .field input,.field select,.field textarea{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--green-2);box-shadow:0 0 0 3px rgba(24,92,68,.1)}
+  .row{display:flex;gap:12px} .row > *{flex:1}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;font-family:'Inter'}
+  .chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)}
+  .chip.bad{background:var(--bad-bg);color:var(--bad)} .chip.neutral{background:var(--paper-2);color:var(--muted)}
+  .drop{border:2px dashed var(--line);border-radius:12px;padding:34px;text-align:center;background:#fff;transition:.15s;cursor:pointer}
+  .drop:hover,.drop.over{border-color:var(--green-2);background:var(--paper-2)}
+  .drop .big{font-size:17px;font-weight:600;color:var(--green)}
+  .preview{max-width:100%;max-height:340px;border-radius:8px;border:1px solid var(--line);display:block;margin:0 auto}
+  .banner{border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;font-size:13.5px}
+  .banner.warn{background:var(--warn-bg);border:1px solid #ecd9a0;color:#6b5208}
+  .banner.bad{background:var(--bad-bg);border:1px solid #e8c4c0;color:#8a2f29}
+  .banner.ok{background:var(--ok-bg);border:1px solid #bfe0cc;color:#155c38}
+  .banner .ic{font-size:18px;line-height:1.2}
+  .empty{text-align:center;padding:46px 20px;color:var(--muted)}
+  .empty .ic{font-size:34px;opacity:.5}
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;vertical-align:-3px}
+  .spinner.dark{border-color:rgba(15,61,46,.2);border-top-color:var(--green)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:13.5px;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:300;opacity:0;transition:.25s;font-weight:500}
+  .toast.show{opacity:1;bottom:34px}
+  .modal-bg{position:fixed;inset:0;background:rgba(26,26,23,.45);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px}
+  .modal{background:#fff;border-radius:14px;max-width:600px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .conf-bar{height:5px;border-radius:3px;background:var(--paper-2);overflow:hidden;width:60px;display:inline-block;vertical-align:middle}
+  .conf-bar > i{display:block;height:100%}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:fit-content}
+  .seg button{border:none;background:#fff;padding:7px 14px;font-size:13px;font-weight:600;color:var(--muted)}
+  .seg button.active{background:var(--green);color:#fff}
+  .search{padding:8px 11px;border:1px solid var(--line);border-radius:8px;min-width:200px;background:#fff}
+  /* lock screen */
+  .lock{position:fixed;inset:0;background:linear-gradient(160deg,#0F3D2E,#0a2a20);display:flex;align-items:center;justify-content:center;z-index:500;padding:20px}
+  .lockcard{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:30px 28px;box-shadow:0 30px 80px rgba(0,0,0,.4);text-align:center}
+  .lockcard .mk{font-family:'Spectral',serif;font-size:26px;font-weight:600;color:var(--green)}
+  .lockcard .mk .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block}
+  .pininp{font-family:'JetBrains Mono';font-size:24px;letter-spacing:8px;text-align:center;padding:12px;border:1px solid var(--line);border-radius:10px;width:100%;margin-top:18px}
+  .pininp:focus{outline:none;border-color:var(--green-2);box-shadow:0 0 0 3px rgba(24,92,68,.12)}
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr}
+    .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}
+    .nav{flex-direction:row;flex-wrap:wrap} .side .foot{display:none}
+    .main{padding:20px 16px 70px} .g3,.g4,.g2{grid-template-columns:1fr 1fr}
+  }
+  @media print{.side,.page-head .btn,.no-print{display:none!important}.app{display:block}.main{padding:0}.card{box-shadow:none;border:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div class="toast" id="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ============================================================
+   Ledger Desk v2 — AI bookkeeping system
+   Works as a Claude artifact AND as a standalone hosted file.
+   ============================================================ */
+const IS_BROWSER = typeof document !== 'undefined';
+
+/* ---------- helpers ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const el = (t,p={},...kids)=>{const e=document.createElement(t);for(const k in p){if(k==='class')e.className=p[k];else if(k==='html')e.innerHTML=p[k];else if(k.startsWith('on'))e.addEventListener(k.slice(2),p[k]);else if(p[k]!=null)e.setAttribute(k,p[k]);}kids.flat().forEach(c=>e.append(c?.nodeType?c:document.createTextNode(c??'')));return e;};
+const uid = ()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const todayISO = ()=>new Date().toISOString().slice(0,10);
+function toast(msg){const t=$('#toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2600);}
+function daysBetween(a,b){return Math.floor((new Date(b)-new Date(a))/864e5);}
+
+/* ---------- storage: artifact API, else localStorage, else memory ---------- */
+const mem = {};
+const STORE = (()=>{
+  const hasArtifact = (typeof window!=='undefined') && window.storage && window.storage.get;
+  const hasLS = (typeof window!=='undefined') && window.localStorage;
+  return {
+    async get(k){ if(hasArtifact){try{const r=await window.storage.get(k);return r?r.value:null;}catch(e){return null;}}
+      if(hasLS){return window.localStorage.getItem(k);} return mem[k]??null; },
+    async set(k,v){ if(hasArtifact){try{await window.storage.set(k,v);return true;}catch(e){}}
+      if(hasLS){try{window.localStorage.setItem(k,v);return true;}catch(e){}} mem[k]=v;return true; }
+  };
+})();
+const DB = {
+  async get(key,fallback){ const raw=await STORE.get(key); if(raw==null)return fallback; try{return JSON.parse(raw);}catch(e){return fallback;} },
+  async set(key,val){ return STORE.set(key,JSON.stringify(val)); }
+};
+
+/* ---------- crypto for PIN ---------- */
+async function sha256(text){
+  const data=new TextEncoder().encode(text);
+  const buf=await (globalThis.crypto||crypto).subtle.digest('SHA-256',data);
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ---------- state ---------- */
+const state = {
+  settings:{ company:'Sheikh Oil Industries', tagline:'Edible Oils — Manufacturing, Refining & Export', address:'Karachi, Pakistan', phone:'', email:'', website:'sheikhoil.com', ntn:'', strn:'', bankName:'', bankAccount:'', bankIban:'', logo:'', invoiceTerms:'Payment due within 7 days. Please reference the invoice number with your payment.', currency:'PKR', taxRate:0 },
+  bank:[], books:[], invoices:[], parties:[], ledger:[], expenses:[], recon:{}
+};
+async function loadAll(){
+  state.settings = Object.assign({}, state.settings, await DB.get('settings', {}));
+  state.bank=await DB.get('bank',[]); state.books=await DB.get('books',[]);
+  state.invoices=await DB.get('invoices',[]); state.parties=await DB.get('parties',[]);
+  state.ledger=await DB.get('ledger',[]); state.expenses=await DB.get('expenses',[]);
+  state.recon=await DB.get('recon',{});
+}
+const save=(k)=>DB.set(k,state[k]);
+function saveAll(){['settings','bank','books','invoices','parties','ledger','expenses','recon'].forEach(save);}
+
+/* ---------- money ---------- */
+function money(n){const c=state.settings.currency||'PKR';const v=Number(n)||0;try{return new Intl.NumberFormat('en-US',{style:'currency',currency:c,minimumFractionDigits:2}).format(v);}catch(e){return c+' '+v.toFixed(2);}}
+function fmtN(n){return (Number(n)||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+/* ---------- invoice math (pure) ---------- */
+function invoiceSub(i){return (i.items||[]).reduce((s,it)=>s+(+it.qty||0)*(+it.rate||0),0);}
+function invoiceTotal(i){const s=invoiceSub(i);return s+s*((+i.taxRate||0)/100);}
+function paidAmount(i){return (i.payments||[]).reduce((s,p)=>s+(+p.amount||0),0);}
+function invoiceOutstanding(i){return Math.max(0, invoiceTotal(i)-paidAmount(i));}
+function invoiceStatus(i,today){
+  today=today||todayISO();
+  const out=invoiceOutstanding(i);
+  if(out<0.01) return 'Paid';
+  if(i.dueDate && daysBetween(i.dueDate,today)>0) return 'Overdue';
+  if(paidAmount(i)>0.01) return 'Partial';
+  return 'Unpaid';
+}
+function nextInvoiceNo(){return 'INV-'+String(state.invoices.length+1).padStart(4,'0');}
+
+/* ---------- reconciliation (pure core) ---------- */
+function computeMatches(bank,books){
+  const bk=bank.map(b=>({...b})), kk=books.map(k=>({...k}));
+  bk.forEach(b=>b._m=null); kk.forEach(k=>k._m=null);
+  const pairs=[];
+  bk.forEach(b=>{
+    if(b._m) return; let best=null,score=1e9;
+    kk.forEach(k=>{
+      if(k._m) return;
+      if(Math.abs((+b.amount)-(+k.amount))>0.01) return;
+      const dd=Math.abs(daysBetween(k.date,b.date)); if(dd>7) return;
+      let sc=dd; if(b.ref&&k.ref&&(''+b.ref).toLowerCase()===(''+k.ref).toLowerCase()) sc-=10;
+      if(sc<score){score=sc;best=k;}
+    });
+    if(best){b._m=best.id;best._m=b.id;pairs.push([b.id,best.id]);}
+  });
+  return pairs;
+}
+
+/* ---------- party balance (pure) ---------- */
+function partyBalance(p){
+  const opening=+p.opening||0;
+  const moves=state.ledger.filter(l=>l.partyId===p.id).reduce((s,l)=>s+(+l.debit||0)-(+l.credit||0),0);
+  return opening+moves;
+}
+function partyName(n){return n||'—';}
+function partyIdByName(name){const p=state.parties.find(p=>p.name.toLowerCase()===(name||'').toLowerCase());return p?p.id:null;}
+function ensureParty(name){if(!name)return;if(!state.parties.some(p=>p.name.toLowerCase()===name.toLowerCase())){state.parties.push({id:uid(),name,kind:'Customer',phone:'',opening:0});save('parties');}}
+
+/* ---------- aging (pure) ---------- */
+function agingBuckets(today){
+  today=today||todayISO();
+  const b={current:0,d30:0,d60:0,d90:0};
+  state.invoices.forEach(i=>{
+    const out=invoiceOutstanding(i); if(out<0.01)return;
+    const ref=i.dueDate||i.date; const age=daysBetween(ref,today);
+    if(age<=0)b.current+=out; else if(age<=30)b.d30+=out; else if(age<=60)b.d60+=out; else b.d90+=out;
+  });
+  return b;
+}
+
+/* independent verification: do the read figures reconcile to the printed closing balance?
+   Tries both orientations (credit-grows = supplier/creditor, debit-grows = customer/debtor). */
+function ledgerCheck(bf, closing, entries){
+  bf=+bf; closing=+closing;
+  if(!isFinite(bf)||!isFinite(closing)) return null;
+  const sumD=entries.reduce((s,e)=>s+(+e.debit||0),0);
+  const sumC=entries.reduce((s,e)=>s+(+e.credit||0),0);
+  const creditGrows=bf+sumC-sumD;   // supplier / Cr balance
+  const debitGrows =bf+sumD-sumC;   // customer / Dr balance
+  if(Math.abs(creditGrows-closing)<1) return {ok:true,orientation:'credit',computed:creditGrows,printed:closing};
+  if(Math.abs(debitGrows-closing)<1)  return {ok:true,orientation:'debit', computed:debitGrows, printed:closing};
+  // report the nearer of the two as the computed figure
+  const near=Math.abs(creditGrows-closing)<=Math.abs(debitGrows-closing)?creditGrows:debitGrows;
+  return {ok:false,orientation:null,computed:near,printed:closing};
+}
+
+/* ============================================================
+   AI EXTRACTION
+   ============================================================ */
+async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Could not read file'));r.readAsDataURL(file);});}
+function buildExtractionMessages(b64,mediaType,isPdf){
+  const sysHint=`You are a meticulous accounting data extractor. Read the attached document
+(a bank statement, invoice, receipt, or hand-written account LEDGER page) and return ONLY a JSON object —
+no prose, no markdown fences. If the image is blurry, cropped, glare-covered, or hard to read, say so honestly
+via "image_quality":"poor" and set "needs_resend":true. NEVER invent numbers you cannot read; if a value is
+unreadable set it to null and lower its confidence. Confidence is 0-100.
+
+DATES: handwritten dates are usually DAY-FIRST (DD.MM.YY or DD/MM/YY). "05.06.26" means 2026-06-05, not June 5th
+as month-first. Convert every date to YYYY-MM-DD using day-first reading.
+
+LEDGER PAGES (a bound book with columns Particulars / Debit / Credit / Dr-or-Cr / Balance):
+- Read the account holder's name (e.g. "Account of UK Traders") into "account_name", and the page number into "page".
+- A first row labelled "B/F" or "Balance brought forward" is the opening balance → put it in "balance_brought_forward".
+- For each row, put the figure in "debit" or "credit" (whichever column it sits in), the running figure from the
+  Balance column into "balance", and the Dr/Cr letter into "dr_cr". Also mirror amounts: money_out=debit, money_in=credit.
+- The last balance shown is "closing_balance".
+- SELF-CHECK THE MATH: starting from balance_brought_forward and applying each row (a credit increases a Cr balance,
+  a debit decreases it; opposite for a Dr balance), confirm you arrive at closing_balance. If your read numbers do NOT
+  reconcile to the printed balances, set "balance_check":"mismatch", explain which row looks wrong in
+  "balance_check_note", and lower the confidence on the suspect row(s). If everything reconciles set "balance_check":"ok".
+
+Return exactly this shape:
+{"document_type":"bank_statement|invoice|receipt|ledger|unclear","image_quality":"good|fair|poor",
+"quality_notes":"","needs_resend":false,"currency":null,"overall_confidence":0,
+"account_name":null,"page":null,"party":null,
+"balance_brought_forward":null,"closing_balance":null,"balance_check":"ok|mismatch|not_applicable","balance_check_note":"",
+"entries":[{"date":"YYYY-MM-DD or null","description":"","reference":"","debit":null,"credit":null,"balance":null,"dr_cr":null,"money_in":null,"money_out":null,"confidence":0}]}
+Include every legible row, in the order written.`;
+  const docBlock=isPdf?{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}}
+    :{type:'image',source:{type:'base64',media_type:mediaType,data:b64}};
+  return [{role:'user',content:[docBlock,{type:'text',text:sysHint}]}];
+}
+function parseModelJSON(text){if(!text)throw new Error('Empty response');let t=text.replace(/```json/gi,'').replace(/```/g,'').trim();const s=t.indexOf('{'),e=t.lastIndexOf('}');if(s===-1||e===-1)throw new Error('No JSON found');return JSON.parse(t.slice(s,e+1));}
+async function extractDocument(file){
+  const isPdf=file.type==='application/pdf'; const b64=await fileToBase64(file);
+  const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4096,messages:buildExtractionMessages(b64,file.type||'image/jpeg',isPdf)})});
+  if(!resp.ok){const t=await resp.text().catch(()=> '');throw new Error('AI service error ('+resp.status+'). '+t.slice(0,120));}
+  const data=await resp.json();
+  const text=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  return parseModelJSON(text);
+}
+
+/* ============================================================
+   SHARED UI BUILDERS
+   ============================================================ */
+function stat(lbl,val,sub,tone){const e=el('div',{class:'stat'},el('div',{class:'lbl'},lbl),el('div',{class:'val'},val));if(sub)e.append(el('div',{class:'sub'},tone?el('span',{class:'chip '+tone,style:'font-size:11px'},sub):sub));return e;}
+function card(title,body,headExtra){const c=el('div',{class:'card'});c.append(el('div',{class:'hd'},el('h3',{},title),headExtra||el('span')));const bd=el('div',{class:'bd'});bd.append(body);c.append(bd);return c;}
+function tableEl(cols,rows){
+  const t=el('table');
+  t.append(el('thead',{},el('tr',{},cols.map(c=>el('th',{class:typeof c==='object'?c.cls:''},typeof c==='object'?c.label:c)))));
+  const tb=el('tbody');
+  rows.forEach(r=>tb.append(el('tr',{},r.map(cell=>{
+    if(cell&&typeof cell==='object'&&!cell.nodeType)return el('td',{class:cell.cls||'',html:cell.html!=null?cell.html:''},cell.html!=null?[]:[cell.text??'']);
+    return el('td',{},cell);
+  }))));
+  t.append(tb);return t;
+}
+function emptyEl(ic,title,sub){return el('div',{class:'empty'},el('div',{class:'ic'},ic),el('div',{style:'font-weight:600;margin-top:8px;color:#444'},title),sub?el('div',{style:'font-size:13px;margin-top:3px'},sub):'');}
+function confChip(c){c=Number(c)||0;const cls=c>=85?'ok':c>=60?'warn':'bad';return `<span class="chip ${cls}">${c}%</span>`;}
+function confBar(c){c=Math.max(0,Math.min(100,Number(c)||0));const col=c>=85?'var(--ok)':c>=60?'var(--warn)':'var(--bad)';return `<span class="conf-bar"><i style="width:${c}%;background:${col}"></i></span>`;}
+
+/* ============================================================
+   ROUTER + SHELL
+   ============================================================ */
+const ROUTES=[
+  {id:'dashboard',label:'Dashboard',ic:'◧'},
+  {id:'scan',label:'Scan & Extract',ic:'⛶'},
+  {id:'reconcile',label:'Bank Reconcile',ic:'⇄'},
+  {id:'invoices',label:'Invoices',ic:'❏'},
+  {id:'parties',label:'Customer Ledgers',ic:'☷'},
+  {id:'match',label:'Ledger Match',ic:'⇌'},
+  {id:'expenses',label:'Expenses',ic:'⊖'},
+  {id:'reports',label:'Reports',ic:'▣'},
+  {id:'settings',label:'Settings',ic:'⚙'},
+];
+let current='dashboard';
+function renderShell(){
+  $('#root').innerHTML='';
+  const side=el('aside',{class:'side'},
+    el('div',{class:'brand'},el('div',{},
+      el('span',{class:'mark'},'Ledger Desk',el('span',{class:'dot'})),
+      el('small',{},'Bookkeeping & Reconciliation'))),
+    el('nav',{class:'nav',id:'nav'}),
+    el('div',{class:'foot'},
+      el('button',{onclick:lockNow},'🔒  Lock now'),
+      el('div',{class:'note'},'Data saves privately on this device/app. The PIN keeps casual viewers out.'))
+  );
+  const main=el('main',{class:'main',id:'view'});
+  $('#root').append(el('div',{class:'app'},side,main));
+  renderNav();renderView();
+}
+function go(id){current=id;openParty=null;openMatchParty=null;renderNav();renderView();}
+function renderNav(){const n=$('#nav');if(!n)return;n.innerHTML='';ROUTES.forEach(r=>n.append(el('button',{class:r.id===current?'active':'',onclick:()=>go(r.id)},el('span',{class:'ic'},r.ic),r.label)));}
+function renderView(){const v=$('#view');if(!v)return;v.innerHTML='';({dashboard:viewDashboard,scan:viewScan,reconcile:viewReconcile,invoices:viewInvoices,parties:viewParties,match:viewMatch,expenses:viewExpenses,reports:viewReports,settings:viewSettings}[current])(v);}
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function viewDashboard(v){
+  const bankBal=state.bank.reduce((s,e)=>s+(+e.amount||0),0);
+  const bookBal=state.books.reduce((s,e)=>s+(+e.amount||0),0);
+  const diff=bankBal-bookBal;
+  const unmatched=state.bank.filter(e=>!e.matchedId).length+state.books.filter(e=>!e.matchedId).length;
+  const recv=state.parties.reduce((s,p)=>s+partyBalance(p),0);
+  const overdue=state.invoices.filter(i=>invoiceStatus(i)==='Overdue').reduce((s,i)=>s+invoiceOutstanding(i),0);
+  const mExp=monthExpenses();
+  v.append(
+    el('div',{class:'page-head'},
+      el('div',{},el('div',{class:'eyebrow'},state.settings.company),el('h1',{},'Dashboard')),
+      el('button',{class:'btn gold',onclick:()=>go('scan')},'＋ Scan a document')),
+    el('div',{class:'grid g4',style:'margin-bottom:18px'},
+      stat('Receivables',money(recv), overdue>0?money(overdue)+' overdue':'Owed to you', overdue>0?'bad':'ok'),
+      stat('Bank vs books',money(diff),Math.abs(diff)<0.01?'✓ Reconciled':unmatched+' open items',Math.abs(diff)<0.01?'ok':'warn'),
+      stat('Expenses (month)',money(mExp),'Cash out this month'),
+      stat('Bank balance',money(bankBal),state.bank.length+' entries'))
+  );
+  if(unmatched>0)v.append(el('div',{class:'banner warn',style:'margin-bottom:18px'},el('span',{class:'ic'},'⇄'),
+    el('div',{},el('strong',{},unmatched+' item(s) not yet reconciled. '),el('a',{href:'#',onclick:e=>{e.preventDefault();go('reconcile');}},'Open reconciliation →'))));
+  if(overdue>0)v.append(el('div',{class:'banner bad',style:'margin-bottom:18px'},el('span',{class:'ic'},'!'),
+    el('div',{},el('strong',{},money(overdue)+' is overdue. '),el('a',{href:'#',onclick:e=>{e.preventDefault();go('invoices');}},'Chase invoices →'))));
+
+  const recentInv=[...state.invoices].slice(-5).reverse();
+  v.append(el('div',{class:'grid g2'},
+    card('Recent invoices',recentInv.length?tableEl(['#','Customer','Outstanding','Status'],recentInv.map(i=>{
+      const st=invoiceStatus(i);
+      return [i.number,partyName(i.party),{html:`<span class="num">${money(invoiceOutstanding(i))}</span>`,cls:'right'},
+        {html:`<span class="chip ${st==='Paid'?'ok':st==='Overdue'?'bad':'neutral'}">${st}</span>`}];
+    })):emptyEl('❏','No invoices yet','Create one from the Invoices tab.')),
+    card('Top receivables',partyBalances().length?tableEl(['Customer','Balance'],partyBalances().slice(0,6).map(p=>[p.name,{html:`<span class="num">${money(p.bal)}</span>`,cls:'right'}])):emptyEl('☷','No balances yet','Add customers in the Ledgers tab.'))
+  ));
+}
+function monthExpenses(){const m=todayISO().slice(0,7);return state.expenses.filter(e=>(e.date||'').slice(0,7)===m).reduce((s,e)=>s+(+e.amount||0),0);}
+function partyBalances(){return state.parties.map(p=>({name:p.name,bal:partyBalance(p)})).filter(p=>Math.abs(p.bal)>0.001).sort((a,b)=>b.bal-a.bal);}
+
+/* ============================================================
+   SCAN & EXTRACT
+   ============================================================ */
+let scanResult=null,scanFile=null,scanFileURL=null;
+function viewScan(v){
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Send a picture or file'),el('h1',{},'Scan & Extract'),
+    el('p',{},'Upload a bank statement, invoice, receipt or ledger photo. The AI reads it and shows what it found — flagging anything unclear before it touches your books.'))));
+  const wrap=el('div',{class:'grid g2'});
+  const left=el('div',{class:'card'});
+  left.append(el('div',{class:'hd'},el('h3',{},'1 · Upload'),scanFile?el('button',{class:'btn ghost sm',onclick:resetScan},'Clear'):el('span')));
+  const lb=el('div',{class:'bd'});
+  if(scanFile){
+    if(scanFile.type==='application/pdf')lb.append(el('div',{class:'banner ok'},el('span',{class:'ic'},'❏'),el('div',{},el('strong',{},scanFile.name),el('br'),'PDF ready to extract.')));
+    else lb.append(el('img',{class:'preview',src:scanFileURL,alt:'preview'}));
+    lb.append(el('button',{class:'btn',style:'margin-top:14px;width:100%',id:'extractBtn',onclick:runExtract},'Read this document'));
+  } else {
+    const dz=el('div',{class:'drop',id:'dz'},el('div',{class:'big'},'Drop a file or tap to choose'),el('div',{class:'muted',style:'margin-top:6px'},'JPG, PNG, or PDF'));
+    const inp=el('input',{type:'file',accept:'image/*,application/pdf',style:'display:none',onchange:e=>{if(e.target.files[0])pickFile(e.target.files[0]);}});
+    dz.addEventListener('click',()=>inp.click());
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])pickFile(e.dataTransfer.files[0]);});
+    lb.append(dz,inp);
+  }
+  left.append(lb);wrap.append(left);
+  const right=el('div',{class:'card'});
+  right.append(el('div',{class:'hd'},el('h3',{},'2 · What the AI found')));
+  const rb=el('div',{class:'bd',id:'scanOut'});
+  rb.append(scanResult?renderScanResult():emptyEl('⛶','Nothing read yet','Upload a document and press “Read this document”.'));
+  right.append(rb);wrap.append(right);v.append(wrap);
+}
+function pickFile(f){scanFile=f;scanResult=null;if(scanFileURL)URL.revokeObjectURL(scanFileURL);scanFileURL=f.type==='application/pdf'?null:URL.createObjectURL(f);renderView();}
+function resetScan(){scanFile=null;scanResult=null;if(scanFileURL)URL.revokeObjectURL(scanFileURL);scanFileURL=null;renderView();}
+async function runExtract(){
+  const btn=$('#extractBtn'),out=$('#scanOut');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span> Reading…';
+  out.innerHTML='';out.append(el('div',{class:'empty'},el('span',{class:'spinner dark'}),el('div',{style:'margin-top:10px'},'Looking at every line carefully…')));
+  try{scanResult=await extractDocument(scanFile);renderView();}
+  catch(err){out.innerHTML='';out.append(el('div',{class:'banner bad'},el('span',{class:'ic'},'⚠'),
+    el('div',{},el('strong',{},'Could not read it automatically. '),(err.message||'Unknown error')+'.',el('br'),
+    el('span',{class:'muted',style:'font-size:12.5px'},'You can still add entries by hand in Reconcile, or try a clearer file.'))));
+    btn.disabled=false;btn.innerHTML='Read this document';}
+}
+function renderScanResult(){
+  const r=scanResult,box=el('div');
+  const poor=r.needs_resend||r.image_quality==='poor'||(r.overall_confidence??100)<60;
+  if(poor)box.append(el('div',{class:'banner warn',style:'margin-bottom:14px'},el('span',{class:'ic'},'📷'),
+    el('div',{},el('strong',{},'This image isn’t clear enough to trust. '),(r.quality_notes||'Some figures are hard to read.'),' ',el('strong',{},'Please send a sharper, well-lit photo'),' (no glare, whole page in frame), then read it again.')));
+  else if(r.image_quality==='fair')box.append(el('div',{class:'banner warn',style:'margin-bottom:14px'},el('span',{class:'ic'},'!'),el('div',{},'Readable, but check amber rows before saving — '+(r.quality_notes||'a few values were less certain.'))));
+  else box.append(el('div',{class:'banner ok',style:'margin-bottom:14px'},el('span',{class:'ic'},'✓'),el('div',{},el('strong',{},'Read clearly. '),'Review below, then send to your books.')));
+  box.append(el('div',{style:'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px'},
+    el('span',{class:'chip neutral'},'Type: '+(r.document_type||'—')),el('span',{class:'chip neutral'},'Party: '+(r.account_name||r.party||'—')),
+    el('span',{class:'chip neutral',html:'Overall '+confChip(r.overall_confidence)})));
+  const entries=(r.entries||[]).map(e=>({...e,_id:uid()}));scanResult._entries=entries;
+  if(!entries.length){box.append(emptyEl('—','No transactions detected','Try a clearer image or another page.'));return box;}
+  const isLedger = r.document_type==='ledger' || entries.some(e=>e.debit!=null||e.credit!=null);
+
+  if(isLedger){
+    box.append(el('div',{style:'display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px'},
+      r.account_name?el('span',{class:'chip neutral'},'Account: '+r.account_name):'',
+      r.page?el('span',{class:'chip neutral'},'Page '+r.page):'',
+      r.balance_brought_forward!=null?el('span',{class:'chip neutral'},'B/F '+money(r.balance_brought_forward)):'',
+      r.closing_balance!=null?el('span',{class:'chip neutral'},'Closing '+money(r.closing_balance)):''));
+    const chk=ledgerCheck(r.balance_brought_forward,r.closing_balance,entries);
+    scanResult._chk=chk;
+    if(chk){ if(chk.ok)
+        box.append(el('div',{class:'banner ok',style:'margin-bottom:14px'},el('span',{class:'ic'},'✓'),
+          el('div',{},el('strong',{},'Balance verified by re-adding the columns. '),'Brought forward '+money(r.balance_brought_forward)+' → the entries below reconcile exactly to the printed closing balance '+money(chk.printed)+'.')));
+      else
+        box.append(el('div',{class:'banner bad',style:'margin-bottom:14px'},el('span',{class:'ic'},'!'),
+          el('div',{},el('strong',{},'These figures don’t add up. '),'From the entries I read I get '+money(chk.computed)+', but the page shows '+money(chk.printed)+' — a digit was likely misread. Fix the amber rows below before saving.'+(r.balance_check_note?(' (AI note: '+r.balance_check_note+')'):''))));
+    }
+  }
+
+  const t=el('table');
+  if(isLedger){
+    t.append(el('thead',{},el('tr',{},[el('th',{},'Date'),el('th',{},'Particulars'),el('th',{},'Ref'),el('th',{class:'right'},'Debit'),el('th',{class:'right'},'Credit'),el('th',{class:'right'},'Balance'),el('th',{class:'center'},'Sure?')])));
+    const tb=el('tbody');
+    entries.forEach(e=>{const low=(e.confidence??100)<60;tb.append(el('tr',{style:low?'background:var(--bad-bg)':''},
+      el('td',{html:editable(e,'date',e.date||'—')}),el('td',{html:editable(e,'description',e.description||'—')}),
+      el('td',{class:'muted',html:editable(e,'reference',e.reference||'—')}),
+      el('td',{class:'right num',html:editable(e,'debit',e.debit!=null?fmtN(e.debit):'—')}),
+      el('td',{class:'right num',html:editable(e,'credit',e.credit!=null?fmtN(e.credit):'—')}),
+      el('td',{class:'right num muted'},e.balance!=null?fmtN(e.balance):'—'),
+      el('td',{class:'center',html:confBar(e.confidence)})));});
+    t.append(tb);
+  } else {
+    t.append(el('thead',{},el('tr',{},[el('th',{},'Date'),el('th',{},'Description'),el('th',{},'Ref'),el('th',{class:'right'},'In'),el('th',{class:'right'},'Out'),el('th',{class:'center'},'Sure?')])));
+    const tb=el('tbody');
+    entries.forEach(e=>{const low=(e.confidence??100)<60;tb.append(el('tr',{style:low?'background:var(--bad-bg)':''},
+      el('td',{html:editable(e,'date',e.date||'—')}),el('td',{html:editable(e,'description',e.description||'—')}),
+      el('td',{class:'muted',html:editable(e,'reference',e.reference||'—')}),
+      el('td',{class:'right num',html:editable(e,'money_in',e.money_in!=null?fmtN(e.money_in):'—')}),
+      el('td',{class:'right num',html:editable(e,'money_out',e.money_out!=null?fmtN(e.money_out):'—')}),
+      el('td',{class:'center',html:confBar(e.confidence)})));});
+    t.append(tb);
+  }
+  box.append(t);
+
+  if(poor)box.append(el('div',{style:'margin-top:14px'},el('div',{class:'muted',style:'font-size:12.5px;margin-bottom:8px'},'Saving is locked until you send a clearer image — to keep mistakes out of your books.'),el('button',{class:'btn',disabled:true,style:'width:100%'},'🔒 Resolve image quality first')));
+  else if(isLedger)box.append(el('div',{style:'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap'},
+    el('button',{class:'btn',onclick:commitScanLedger},'→ Save as a customer ledger'),
+    el('button',{class:'btn ghost',onclick:()=>commitEntries('books')},'→ Add to my books')));
+  else box.append(el('div',{style:'display:flex;gap:10px;margin-top:16px;flex-wrap:wrap'},
+    el('button',{class:'btn',onclick:()=>commitEntries('bank')},'→ Add to bank statement'),
+    el('button',{class:'btn ghost',onclick:()=>commitEntries('books')},'→ Add to my books'),
+    el('button',{class:'btn ghost',onclick:openInvoiceFromScan},'→ Make an invoice')));
+  return box;
+}
+function editable(obj,key,display){return `<span contenteditable="true" style="outline:none;border-bottom:1px dashed transparent;min-width:24px;display:inline-block" onfocus="this.style.borderColor='var(--green-2)'" onblur="this.style.borderColor='transparent';window.__edit('${obj._id}','${key}',this.innerText)">${display}</span>`;}
+window.__edit=(id,key,val)=>{const e=(scanResult._entries||[]).find(x=>x._id===id);if(!e)return;if(['money_in','money_out','debit','credit','balance'].includes(key)){const n=parseFloat(val.replace(/[^0-9.\-]/g,''));e[key]=isNaN(n)?null:n;}else e[key]=(val==='—'?'':val.trim());};
+function commitEntries(target){let added=0;(scanResult._entries||[]).forEach(e=>{const amt=(+e.money_in||+e.credit||0)-(+e.money_out||+e.debit||0);if(!amt&&!e.description)return;state[target].push({id:uid(),date:e.date||todayISO(),desc:e.description||'(no description)',ref:e.reference||'',amount:amt,matchedId:null,source:'scan'});added++;});save(target);toast(`✓ ${added} entr${added===1?'y':'ies'} added`);resetScan();go('reconcile');}
+// Import a scanned account-book page into a chosen customer's ledger.
+// Orientation-aware so the app's running balance reproduces the printed closing balance.
+function commitScanLedger(){
+  const r=scanResult, entries=(scanResult._entries||[]).filter(e=>(+e.debit||0)||(+e.credit||0));
+  if(!entries.length){toast('No debit/credit lines to save');return;}
+  const def=r.account_name||r.party||'';
+  const chk=scanResult._chk;
+  const swap = chk && chk.ok && chk.orientation==='credit';   // creditor/supplier account
+  const body=el('div',{class:'bd'});const f={name:def};
+  body.append(el('p',{class:'muted',style:'margin-top:0'},'Save these '+entries.length+' lines as a customer/supplier ledger. The running balance is set so it matches the page'+(r.closing_balance!=null?(' ('+money(r.closing_balance)+')'):'')+'.'),
+    el('div',{class:'field'},el('label',{},'Account name'),el('input',{value:def,list:'pl2',oninput:e=>f.name=e.target.value})),
+    (()=>{const d=el('datalist',{id:'pl2'});state.parties.forEach(p=>d.append(el('option',{value:p.name})));return d;})(),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{
+      if(!f.name){toast('Enter a name');return;}
+      ensureParty(f.name);const p=state.parties.find(x=>x.name.toLowerCase()===f.name.toLowerCase());
+      if(swap)p.kind='Supplier';
+      const fresh=!state.ledger.some(l=>l.partyId===p.id);
+      if(fresh && r.balance_brought_forward!=null) p.opening=+r.balance_brought_forward;
+      save('parties');
+      entries.forEach(e=>{const deb=+e.debit||0,cre=+e.credit||0;
+        state.ledger.push({id:uid(),partyId:p.id,date:e.date||todayISO(),particulars:e.description||'(entry)',
+          debit: swap?cre:deb, credit: swap?deb:cre, ref:e.reference||'',kind:'manual'});});
+      save('ledger');closeModal();resetScan();openParty=p.id;current='parties';renderNav();renderView();
+      toast('✓ Saved to '+f.name+'’s ledger');
+    }},'Save ledger')
+  );
+  showModal('Save scanned ledger',body);
+}
+function openInvoiceFromScan(){const items=(scanResult._entries||[]).filter(e=>e.money_in||e.money_out).map(e=>({desc:e.description||'Item',qty:1,rate:(+e.money_in||+e.money_out||0)}));openInvoiceModal({party:'',date:todayISO(),items:items.length?items:[{desc:'',qty:1,rate:0}],notes:'',prefillParty:scanResult.party||''});}
+
+/* ============================================================
+   RECONCILE
+   ============================================================ */
+function autoMatch(){
+  state.bank.forEach(e=>e.matchedId=null);state.books.forEach(e=>e.matchedId=null);
+  const pairs=computeMatches(state.bank,state.books);
+  pairs.forEach(([bId,kId])=>{const b=state.bank.find(x=>x.id===bId),k=state.books.find(x=>x.id===kId);if(b&&k){b.matchedId=kId;k.matchedId=bId;}});
+  save('bank');save('books');toast(pairs.length?`✓ Auto-matched ${pairs.length} pair(s)`:'No new matches found');renderView();
+}
+function manualToggle(side,id){const item=state[side].find(e=>e.id===id);if(item.matchedId){const other=(side==='bank'?state.books:state.bank).find(e=>e.id===item.matchedId);if(other)other.matchedId=null;item.matchedId=null;save('bank');save('books');renderView();return;}const opp=side==='bank'?'books':'bank';openMatchPicker(side,item,opp,state[opp].filter(e=>!e.matchedId));}
+function openMatchPicker(side,item,opp,cands){
+  const body=el('div',{class:'bd'});
+  body.append(el('p',{class:'muted',style:'margin-top:0'},`Matching: “${item.desc}” · ${money(item.amount)} · ${item.date}`));
+  if(!cands.length)body.append(emptyEl('—','Nothing to match against','Add the matching entry on the other side first.'));
+  const t=el('table');
+  cands.forEach(c=>{const close=Math.abs((+c.amount)-(+item.amount))<0.01;t.append(el('tr',{},el('td',{},c.date),el('td',{},c.desc),el('td',{class:'right num'+(close?'':' muted')},money(c.amount)),el('td',{class:'right'},el('button',{class:'btn sm'+(close?'':' ghost'),onclick:()=>{item.matchedId=c.id;c.matchedId=item.id;save('bank');save('books');closeModal();renderView();toast('✓ Matched');}},close?'Match':'Force'))));});
+  body.append(t);showModal('Choose a match',body);
+}
+let recSearch='';
+function viewReconcile(v){
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Bank vs books'),el('h1',{},'Bank Reconciliation'),el('p',{},'Match each bank line to your own record. When everything matches, the two balances agree.')),
+    el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},el('button',{class:'btn ghost',onclick:()=>openEntryModal('bank')},'＋ Bank'),el('button',{class:'btn ghost',onclick:()=>openEntryModal('books')},'＋ Book'),el('button',{class:'btn gold',onclick:autoMatch},'⇄ Auto-match'))));
+  const bankBal=state.bank.reduce((s,e)=>s+(+e.amount||0),0),bookBal=state.books.reduce((s,e)=>s+(+e.amount||0),0);
+  const mb=state.bank.filter(e=>e.matchedId).length,mk=state.books.filter(e=>e.matchedId).length;
+  const ub=state.bank.filter(e=>!e.matchedId).length,uk=state.books.filter(e=>!e.matchedId).length,diff=bankBal-bookBal;
+  v.append(el('div',{class:'grid g4',style:'margin-bottom:18px'},stat('Bank balance',money(bankBal),state.bank.length+' entries'),stat('Book balance',money(bookBal),state.books.length+' entries'),stat('Matched',mb+' ⇄ '+mk,(ub+uk)+' open',(ub+uk)===0?'ok':'warn'),stat('Difference',money(diff),Math.abs(diff)<0.01?'✓ Reconciled':'Out of balance',Math.abs(diff)<0.01?'ok':'bad')));
+  v.append(el('div',{style:'margin-bottom:14px'},el('input',{class:'search',placeholder:'Search description or reference…',value:recSearch,oninput:e=>{recSearch=e.target.value;drawReconCols();}})));
+  const cols=el('div',{class:'grid g2',id:'reconCols'});v.append(cols);drawReconCols();
+}
+function drawReconCols(){const cols=$('#reconCols');if(!cols)return;cols.innerHTML='';cols.append(reconCol('bank','Bank statement',state.bank),reconCol('books','My books',state.books));}
+function reconCol(side,title,rows){
+  const q=recSearch.toLowerCase();
+  const filtered=rows.filter(r=>!q||(r.desc||'').toLowerCase().includes(q)||(r.ref||'').toLowerCase().includes(q));
+  const c=el('div',{class:'card'});
+  c.append(el('div',{class:'hd'},el('h3',{},title),el('span',{class:'chip neutral'},rows.filter(r=>!r.matchedId).length+' unmatched')));
+  const bd=el('div',{class:'bd',style:'padding:0'});
+  if(!filtered.length){bd.append(el('div',{style:'padding:18px'},emptyEl('—','Nothing here','Scan a document or add an entry.')));c.append(bd);return c;}
+  const t=el('table');t.append(el('thead',{},el('tr',{},[el('th',{},'Date'),el('th',{},'Description'),el('th',{class:'right'},'Amount'),el('th',{class:'center'},'')])));
+  const tb=el('tbody');
+  filtered.slice().sort((a,b)=>new Date(a.date)-new Date(b.date)).forEach(e=>tb.append(el('tr',{style:e.matchedId?'opacity:.6':''},
+    el('td',{},e.date),el('td',{},el('div',{},e.desc),e.ref?el('div',{class:'muted',style:'font-size:11px'},'Ref '+e.ref):''),
+    el('td',{class:'right num',style:(+e.amount<0?'color:var(--bad)':'')},money(e.amount)),
+    el('td',{class:'center'},el('button',{class:'btn sm '+(e.matchedId?'ghost':'gold'),onclick:()=>manualToggle(side,e.id)},e.matchedId?'✓':'match'),
+      el('button',{class:'btn sm danger',style:'margin-left:5px',onclick:()=>{if(e.matchedId){const o=(side==='bank'?state.books:state.bank).find(x=>x.id===e.matchedId);if(o)o.matchedId=null;}state[side]=state[side].filter(x=>x.id!==e.id);save('bank');save('books');renderView();}},'✕')))));
+  t.append(tb);bd.append(t);c.append(bd);return c;
+}
+function openEntryModal(side){
+  const f={date:todayISO(),desc:'',ref:'',sign:'in',amount:''};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  const seg=el('div',{class:'seg'},el('button',{class:'active',onclick:()=>{f.sign='in';seg.children[0].classList.add('active');seg.children[1].classList.remove('active');}},'Money in'),el('button',{onclick:()=>{f.sign='out';seg.children[1].classList.add('active');seg.children[0].classList.remove('active');}},'Money out'));
+  body.append(mk('Date',el('input',{type:'date',value:f.date,oninput:e=>f.date=e.target.value})),mk('Description',el('input',{placeholder:'e.g. Cheque #221 — Al-Karam sale',oninput:e=>f.desc=e.target.value})),mk('Reference',el('input',{placeholder:'optional',oninput:e=>f.ref=e.target.value})),el('div',{class:'field'},el('label',{},'Direction'),seg),mk('Amount',el('input',{type:'number',step:'0.01',placeholder:'0.00',oninput:e=>f.amount=e.target.value})),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{const amt=(f.sign==='in'?1:-1)*(parseFloat(f.amount)||0);if(!amt){toast('Enter an amount');return;}state[side].push({id:uid(),date:f.date,desc:f.desc||'(no description)',ref:f.ref,amount:amt,matchedId:null,source:'manual'});save(side);closeModal();renderView();toast('✓ Entry added');}},'Add entry'));
+  showModal('Add '+(side==='bank'?'bank':'book')+' entry',body);
+}
+
+/* ============================================================
+   INVOICES (with payments, due dates, aging)
+   ============================================================ */
+let invSearch='';
+function viewInvoices(v){
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Billing'),el('h1',{},'Invoices'),el('p',{},'Create invoices, record full or partial payments, and track what’s overdue. Saving an invoice posts it to the customer’s ledger automatically.')),el('button',{class:'btn gold',onclick:()=>openInvoiceModal()},'＋ New invoice')));
+  if(!state.invoices.length){v.append(card('All invoices',emptyEl('❏','No invoices yet','Press “New invoice” to make your first one.')));return;}
+  v.append(el('div',{style:'margin-bottom:14px'},el('input',{class:'search',placeholder:'Search by number or customer…',value:invSearch,oninput:e=>{invSearch=e.target.value;renderView();}})));
+  const q=invSearch.toLowerCase();
+  const rows=[...state.invoices].reverse().filter(i=>!q||i.number.toLowerCase().includes(q)||partyName(i.party).toLowerCase().includes(q)).map(i=>{
+    const st=invoiceStatus(i);
+    return [i.number,i.date,partyName(i.party),i.dueDate||'—',
+      {html:`<span class="num">${money(invoiceTotal(i))}</span>`,cls:'right'},
+      {html:`<span class="num">${money(invoiceOutstanding(i))}</span>`,cls:'right'},
+      {html:`<span class="chip ${st==='Paid'?'ok':st==='Overdue'?'bad':st==='Partial'?'warn':'neutral'}">${st}</span>`},
+      {html:`<button class="btn sm ghost" onclick="window.__viewInv('${i.id}')">view</button> <button class="btn sm gold" onclick="window.__payModal('${i.id}')">pay</button> <button class="btn sm danger" onclick="window.__delInv('${i.id}')">✕</button>`,cls:'right'}];
+  });
+  v.append(card('All invoices',tableEl(['#','Date','Customer','Due','Total','Outstanding','Status',{label:'',cls:'right'}],rows)));
+}
+window.__viewInv=id=>showInvoice(state.invoices.find(i=>i.id===id));
+window.__delInv=id=>{const i=state.invoices.find(x=>x.id===id);state.ledger=state.ledger.filter(l=>l.ref!=='LNK:'+id);state.invoices=state.invoices.filter(x=>x.id!==id);save('invoices');save('ledger');renderView();toast('Invoice deleted');};
+window.__payModal=id=>openPaymentModal(state.invoices.find(i=>i.id===id));
+function postInvoiceToLedger(i){
+  ensureParty(i.party);const pid=partyIdByName(i.party);if(!pid)return;
+  state.ledger=state.ledger.filter(l=>!(l.ref==='LNK:'+i.id&&l.kind==='invoice'));
+  state.ledger.push({id:'inv_'+i.id,partyId:pid,date:i.date,particulars:'Invoice '+i.number,debit:invoiceTotal(i),credit:0,ref:'LNK:'+i.id,kind:'invoice'});
+}
+function syncPaymentsToLedger(i){
+  const pid=partyIdByName(i.party);if(!pid)return;
+  state.ledger=state.ledger.filter(l=>!(l.ref==='LNK:'+i.id&&l.kind==='payment'));
+  (i.payments||[]).forEach(p=>state.ledger.push({id:'pay_'+p.id,partyId:pid,date:p.date,particulars:'Payment — '+i.number+(p.method?' ('+p.method+')':''),debit:0,credit:+p.amount||0,ref:'LNK:'+i.id,kind:'payment'}));
+}
+function openPaymentModal(i){
+  if(!i)return;const out=invoiceOutstanding(i);
+  const f={date:todayISO(),amount:out.toFixed(2),method:'Cash'};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  body.append(el('p',{class:'muted',style:'margin-top:0'},`${i.number} · ${partyName(i.party)} · Outstanding ${money(out)}`),
+    mk('Date',el('input',{type:'date',value:f.date,oninput:e=>f.date=e.target.value})),
+    mk('Amount received',el('input',{type:'number',step:'0.01',value:f.amount,oninput:e=>f.amount=e.target.value})),
+    mk('Method',(()=>{const s=el('select',{onchange:e=>f.method=e.target.value});['Cash','Bank transfer','Cheque','Card','Other'].forEach(m=>s.append(el('option',{},m)));return s;})()),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{const amt=parseFloat(f.amount)||0;if(!amt){toast('Enter an amount');return;}i.payments=i.payments||[];i.payments.push({id:uid(),date:f.date,amount:amt,method:f.method});syncPaymentsToLedger(i);save('invoices');save('ledger');closeModal();renderView();toast('✓ Payment recorded');}},'Record payment'));
+  showModal('Record payment',body);
+}
+function openInvoiceModal(pref){
+  const inv=pref||{party:'',date:todayISO(),items:[{desc:'',qty:1,rate:0}],notes:''};
+  inv.taxRate=inv.taxRate??state.settings.taxRate??0;
+  inv.dueDate=inv.dueDate||new Date(Date.now()+7*864e5).toISOString().slice(0,10);
+  const body=el('div',{class:'bd'});
+  const partyIn=el('input',{list:'partyList',placeholder:'Customer name',value:inv.prefillParty||inv.party||'',oninput:e=>inv.party=e.target.value});
+  const dl=el('datalist',{id:'partyList'});state.parties.forEach(p=>dl.append(el('option',{value:p.name})));
+  body.append(el('div',{class:'row'},el('div',{class:'field'},el('label',{},'Customer'),partyIn,dl),el('div',{class:'field'},el('label',{},'Date'),el('input',{type:'date',value:inv.date,oninput:e=>inv.date=e.target.value})),el('div',{class:'field'},el('label',{},'Due date'),el('input',{type:'date',value:inv.dueDate,oninput:e=>inv.dueDate=e.target.value}))));
+  const itemsWrap=el('div',{id:'itemsWrap'});
+  function drawItems(){itemsWrap.innerHTML='';const t=el('table');t.append(el('thead',{},el('tr',{},[el('th',{},'Description'),el('th',{class:'right',style:'width:60px'},'Qty'),el('th',{class:'right',style:'width:100px'},'Rate'),el('th',{class:'right',style:'width:100px'},'Amount'),el('th',{style:'width:30px'})])));const tb=el('tbody');
+    inv.items.forEach((it,idx)=>tb.append(el('tr',{},el('td',{},el('input',{value:it.desc,placeholder:'Item / service',style:'border:none;padding:4px',oninput:e=>it.desc=e.target.value})),el('td',{class:'right'},el('input',{type:'number',value:it.qty,style:'border:none;padding:4px;text-align:right;width:55px',oninput:e=>{it.qty=+e.target.value;refreshTotals();}})),el('td',{class:'right'},el('input',{type:'number',value:it.rate,style:'border:none;padding:4px;text-align:right;width:90px',oninput:e=>{it.rate=+e.target.value;refreshTotals();}})),el('td',{class:'right num',id:'amt'+idx},fmtN((+it.qty||0)*(+it.rate||0))),el('td',{class:'center'},el('button',{class:'btn sm danger',onclick:()=>{inv.items.splice(idx,1);if(!inv.items.length)inv.items.push({desc:'',qty:1,rate:0});drawItems();refreshTotals();}},'✕')))));
+    t.append(tb);itemsWrap.append(t);itemsWrap.append(el('button',{class:'btn ghost sm',style:'margin-top:8px',onclick:()=>{inv.items.push({desc:'',qty:1,rate:0});drawItems();}},'＋ Add line'));}
+  function refreshTotals(){inv.items.forEach((it,idx)=>{const c=$('#amt'+idx);if(c)c.textContent=fmtN((+it.qty||0)*(+it.rate||0));});const sub=invoiceSub(inv),tax=sub*((+inv.taxRate||0)/100);$('#invSub').textContent=money(sub);$('#invTax').textContent=money(tax);$('#invTot').textContent=money(sub+tax);}
+  drawItems();body.append(el('div',{class:'field'},el('label',{},'Line items'),itemsWrap));
+  body.append(el('div',{class:'row'},el('div',{class:'field'},el('label',{},'Tax %'),el('input',{type:'number',step:'0.01',value:inv.taxRate,oninput:e=>{inv.taxRate=+e.target.value;refreshTotals();}})),el('div',{class:'field'},el('label',{},'Notes'),el('textarea',{rows:'2',placeholder:'Payment terms, thanks, etc.',oninput:e=>inv.notes=e.target.value},inv.notes||''))));
+  body.append(el('div',{style:'border-top:1px solid var(--line);margin-top:6px;padding-top:12px;text-align:right;font-size:13.5px'},el('div',{},'Subtotal: ',el('span',{class:'num',id:'invSub'},money(0))),el('div',{style:'margin-top:3px'},'Tax: ',el('span',{class:'num',id:'invTax'},money(0))),el('div',{style:'margin-top:6px;font-size:18px;font-weight:600'},'Total: ',el('span',{class:'num',id:'invTot'},money(0)))));
+  body.append(el('button',{class:'btn',style:'width:100%;margin-top:14px',onclick:()=>{if(!inv.party&&inv.prefillParty)inv.party=inv.prefillParty;if(!inv.party){toast('Add a customer name');return;}const rec={id:uid(),number:nextInvoiceNo(),date:inv.date,dueDate:inv.dueDate,party:inv.party,items:inv.items.filter(it=>it.desc||it.rate),taxRate:+inv.taxRate||0,notes:inv.notes,payments:[]};state.invoices.push(rec);ensureParty(inv.party);postInvoiceToLedger(rec);save('invoices');save('parties');save('ledger');closeModal();renderView();toast('✓ Invoice '+rec.number+' saved & posted');}},'Save invoice'));
+  setTimeout(refreshTotals,0);showModal('New invoice',body);
+}
+function showInvoice(i){
+  if(!i)return;const sub=invoiceSub(i),tax=sub*((+i.taxRate||0)/100),st=invoiceStatus(i);
+  const s=state.settings;
+  const body=el('div',{class:'bd'});
+  // --- letterhead ---
+  const left=el('div',{style:'display:flex;gap:12px;align-items:flex-start'});
+  if(s.logo)left.append(el('img',{src:s.logo,alt:'logo',style:'height:54px;width:auto;border-radius:6px'}));
+  left.append(el('div',{},
+    el('div',{class:'serif',style:'font-size:23px;font-weight:600;color:var(--green);line-height:1.1'},s.company||'Company'),
+    s.tagline?el('div',{class:'muted',style:'font-size:11.5px;margin-top:2px'},s.tagline):'',
+    el('div',{class:'muted',style:'font-size:11.5px;margin-top:4px;line-height:1.5'},
+      [s.address,s.phone&&('Tel: '+s.phone),s.email,s.website].filter(Boolean).join('  ·  '))
+  ));
+  body.append(el('div',{style:'display:flex;justify-content:space-between;align-items:flex-start;gap:16px'},
+    left,
+    el('div',{class:'right'},
+      el('div',{class:'serif',style:'font-size:18px;font-weight:600;letter-spacing:.12em;color:var(--gold)'},'INVOICE'),
+      el('div',{style:'font-weight:600;font-size:15px;margin-top:4px'},i.number),
+      el('div',{class:'muted',style:'font-size:12px'},'Date '+i.date),
+      i.dueDate?el('div',{class:'muted',style:'font-size:12px'},'Due '+i.dueDate):'',
+      el('span',{class:'chip '+(st==='Paid'?'ok':st==='Overdue'?'bad':'neutral'),style:'margin-top:4px'},st))
+  ));
+  if(s.ntn||s.strn)body.append(el('div',{class:'muted',style:'font-size:11px;margin-top:6px'},
+    [s.ntn&&('NTN: '+s.ntn),s.strn&&('STRN: '+s.strn)].filter(Boolean).join('   ·   ')));
+  // gold rule
+  body.append(el('div',{style:'height:3px;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:2px;margin:14px 0'}));
+  // bill to
+  body.append(el('div',{style:'margin-bottom:6px'},el('div',{class:'muted',style:'font-size:11px;text-transform:uppercase;letter-spacing:.08em'},'Bill to'),el('div',{style:'font-weight:600;font-size:15px'},partyName(i.party))));
+  const t=el('table');t.append(el('thead',{},el('tr',{},[el('th',{},'Description'),el('th',{class:'right'},'Qty'),el('th',{class:'right'},'Rate'),el('th',{class:'right'},'Amount')])));const tb=el('tbody');
+  (i.items||[]).forEach(it=>tb.append(el('tr',{},el('td',{},it.desc),el('td',{class:'right num'},it.qty),el('td',{class:'right num'},fmtN(it.rate)),el('td',{class:'right num'},fmtN((+it.qty||0)*(+it.rate||0))))));
+  t.append(tb);body.append(t);
+  body.append(el('div',{style:'text-align:right;margin-top:12px;font-size:14px'},el('div',{},'Subtotal: ',el('span',{class:'num'},money(sub))),i.taxRate?el('div',{style:'margin-top:3px'},`Tax (${i.taxRate}%): `,el('span',{class:'num'},money(tax))):'',el('div',{style:'margin-top:6px;font-size:17px;font-weight:600'},'Total: ',el('span',{class:'num'},money(sub+tax))),paidAmount(i)>0?el('div',{style:'margin-top:3px;color:var(--ok)'},'Paid: ',el('span',{class:'num'},money(paidAmount(i)))):'',el('div',{style:'margin-top:6px;font-size:18px;font-weight:600;color:var(--green)'},'Outstanding: ',el('span',{class:'num'},money(invoiceOutstanding(i))))));
+  if((i.payments||[]).length)body.append(el('div',{class:'muted',style:'margin-top:12px;font-size:12px'},'Payments: '+(i.payments.map(p=>p.date+' '+money(p.amount)).join(' · '))));
+  if(i.notes)body.append(el('div',{class:'muted',style:'margin-top:14px;font-size:12.5px;border-top:1px dashed var(--line);padding-top:10px'},i.notes));
+  // footer: bank + terms
+  const bankBits=[s.bankName&&('Bank: '+s.bankName),s.bankAccount&&('A/C: '+s.bankAccount),s.bankIban&&('IBAN: '+s.bankIban)].filter(Boolean);
+  if(bankBits.length||s.invoiceTerms){
+    body.append(el('div',{style:'margin-top:16px;border-top:1px solid var(--line);padding-top:10px;font-size:11.5px;color:var(--muted)'},
+      bankBits.length?el('div',{style:'font-weight:600;color:#444'},'Payment: ',bankBits.join('   ·   ')):'',
+      s.invoiceTerms?el('div',{style:'margin-top:4px'},s.invoiceTerms):''));
+  }
+  body.append(el('div',{class:'no-print',style:'display:flex;gap:8px;margin-top:16px'},el('button',{class:'btn',onclick:()=>window.print()},'🖶 Print / Save PDF'),el('button',{class:'btn ghost',onclick:closeModal},'Close')));
+  showModal('',body,true);
+}
+
+/* ============================================================
+   CUSTOMER LEDGERS
+   ============================================================ */
+let openParty=null,partySearch='';
+function viewParties(v){
+  if(openParty)return drawPartyLedger(v,state.parties.find(p=>p.id===openParty));
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Receivables & payables'),el('h1',{},'Customer Ledgers'),el('p',{},'A running account per customer or supplier. Inward = they owe you (debit); Outward = payment received (credit).')),el('button',{class:'btn gold',onclick:()=>openPartyModal()},'＋ Add customer')));
+  if(!state.parties.length){v.append(card('Customers & suppliers',emptyEl('☷','No customers yet','Add one to start a ledger.')));return;}
+  v.append(el('div',{style:'margin-bottom:14px'},el('input',{class:'search',placeholder:'Search name…',value:partySearch,oninput:e=>{partySearch=e.target.value;renderView();}})));
+  const q=partySearch.toLowerCase();
+  const rows=state.parties.filter(p=>!q||p.name.toLowerCase().includes(q)).map(p=>{const bal=partyBalance(p);return [p.name,{html:`<span class="chip neutral">${p.kind}</span>`},p.phone||'—',{html:`<span class="num" style="${bal<0?'color:var(--bad)':''}">${money(bal)}</span>`,cls:'right'},{html:`<button class="btn sm ghost" onclick="window.__openParty('${p.id}')">open</button> <button class="btn sm danger" onclick="window.__delParty('${p.id}')">✕</button>`,cls:'right'}];});
+  v.append(card('Customers & suppliers',tableEl(['Name','Type','Phone',{label:'Balance',cls:'right'},{label:'',cls:'right'}],rows)));
+}
+window.__openParty=id=>{openParty=id;renderView();};
+window.__delParty=id=>{if(state.ledger.some(l=>l.partyId===id)){if(!confirm('This customer has ledger entries. Delete anyway?'))return;}state.parties=state.parties.filter(p=>p.id!==id);state.ledger=state.ledger.filter(l=>l.partyId!==id);save('parties');save('ledger');renderView();toast('Customer removed');};
+function drawPartyLedger(v,p){
+  if(!p){openParty=null;return renderView();}
+  v.append(el('div',{class:'page-head'},el('div',{},el('a',{href:'#',class:'eyebrow',onclick:e=>{e.preventDefault();openParty=null;renderView();}},'← All customers'),el('h1',{},p.name),el('p',{},p.kind+(p.phone?' · '+p.phone:''))),el('div',{style:'display:flex;gap:8px'},el('button',{class:'btn ghost',onclick:()=>{openMatchParty=p.id;current='match';openParty=null;renderNav();renderView();}},'⇌ Match their ledger'),el('button',{class:'btn ghost',onclick:()=>printStatement(p)},'🖶 Statement'),el('button',{class:'btn gold',onclick:()=>openLedgerEntryModal(p)},'＋ Add entry'))));
+  const bal=partyBalance(p);
+  v.append(el('div',{class:'grid g3',style:'margin-bottom:18px'},stat('Current balance',money(bal),bal>0?'They owe you':bal<0?'You owe them':'Settled',Math.abs(bal)<.01?'ok':bal>0?'warn':'bad'),stat('Opening',money(p.opening),'Brought forward'),stat('Entries',state.ledger.filter(l=>l.partyId===p.id).length+'','Transactions')));
+  v.append(card('Ledger — Inward (Debit) / Outward (Credit)',ledgerTable(p)));
+}
+function ledgerTable(p){
+  const moves=state.ledger.filter(l=>l.partyId===p.id).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  let run=+p.opening||0;const rows=[['—','Opening balance','','',{html:`<span class="num">${money(run)}</span>`,cls:'right'},'']];
+  moves.forEach(l=>{run+=(+l.debit||0)-(+l.credit||0);rows.push([l.date,l.particulars,{html:l.debit?`<span class="num">${fmtN(l.debit)}</span>`:'<span class="muted">—</span>',cls:'right'},{html:l.credit?`<span class="num">${fmtN(l.credit)}</span>`:'<span class="muted">—</span>',cls:'right'},{html:`<span class="num">${money(run)}</span>`,cls:'right'},{html:l.ref&&l.ref.startsWith('LNK:')?'<span class="muted" style="font-size:11px">auto</span>':`<button class="btn sm danger" onclick="window.__delLedger('${l.id}')">✕</button>`,cls:'right'}]);});
+  return tableEl(['Date','Particulars',{label:'Inward / Dr',cls:'right'},{label:'Outward / Cr',cls:'right'},{label:'Balance',cls:'right'},{label:'',cls:'right'}],rows);
+}
+window.__delLedger=id=>{state.ledger=state.ledger.filter(l=>l.id!==id);save('ledger');renderView();};
+function openLedgerEntryModal(p){
+  const f={date:todayISO(),particulars:'',dir:'in',amount:'',ref:''};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  const seg=el('div',{class:'seg'},el('button',{class:'active',onclick:()=>{f.dir='in';seg.children[0].classList.add('active');seg.children[1].classList.remove('active');}},'Inward (they owe)'),el('button',{onclick:()=>{f.dir='out';seg.children[1].classList.add('active');seg.children[0].classList.remove('active');}},'Outward (payment)'));
+  body.append(mk('Date',el('input',{type:'date',value:f.date,oninput:e=>f.date=e.target.value})),mk('Particulars',el('input',{placeholder:'e.g. 50 cartons Corn Supreme',oninput:e=>f.particulars=e.target.value})),el('div',{class:'field'},el('label',{},'Direction'),seg),mk('Amount',el('input',{type:'number',step:'0.01',placeholder:'0.00',oninput:e=>f.amount=e.target.value})),mk('Reference',el('input',{placeholder:'optional',oninput:e=>f.ref=e.target.value})),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{const amt=parseFloat(f.amount)||0;if(!amt){toast('Enter an amount');return;}state.ledger.push({id:uid(),partyId:p.id,date:f.date,particulars:f.particulars||'(entry)',debit:f.dir==='in'?amt:0,credit:f.dir==='out'?amt:0,ref:f.ref,kind:'manual'});save('ledger');closeModal();renderView();toast('✓ Ledger entry added');}},'Add entry'));
+  showModal('Ledger entry — '+p.name,body);
+}
+function openPartyModal(){
+  const f={name:'',kind:'Customer',phone:'',opening:0};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  const kindSel=el('select',{onchange:e=>f.kind=e.target.value},el('option',{},'Customer'),el('option',{},'Supplier'),el('option',{},'Both'));
+  body.append(mk('Name',el('input',{placeholder:'Customer / supplier name',oninput:e=>f.name=e.target.value})),mk('Type',kindSel),mk('Phone',el('input',{placeholder:'optional',oninput:e=>f.phone=e.target.value})),mk('Opening balance (they owe you)',el('input',{type:'number',step:'0.01',value:0,oninput:e=>f.opening=+e.target.value})),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{if(!f.name){toast('Enter a name');return;}state.parties.push({id:uid(),name:f.name,kind:f.kind,phone:f.phone,opening:+f.opening||0});save('parties');closeModal();renderView();toast('✓ Customer added');}},'Add customer'));
+  showModal('Add customer / supplier',body);
+}
+function printStatement(p){
+  const body=el('div',{class:'bd'});
+  body.append(el('div',{style:'display:flex;justify-content:space-between;align-items:flex-start'},el('div',{},el('div',{class:'serif',style:'font-size:22px;font-weight:600;color:var(--green)'},state.settings.company),el('div',{class:'muted',style:'font-size:12px'},'Account statement')),el('div',{class:'right'},el('div',{style:'font-weight:600'},p.name),el('div',{class:'muted',style:'font-size:12px'},'As of '+todayISO()))));
+  body.append(el('div',{style:'margin-top:14px'},ledgerTable(p)));
+  body.append(el('div',{style:'text-align:right;margin-top:10px;font-size:16px;font-weight:600;color:var(--green)'},'Balance due: ',el('span',{class:'num'},money(partyBalance(p)))));
+  body.append(el('div',{class:'no-print',style:'display:flex;gap:8px;margin-top:16px'},el('button',{class:'btn',onclick:()=>window.print()},'🖶 Print / Save PDF'),el('button',{class:'btn ghost',onclick:closeModal},'Close')));
+  showModal('',body,true);
+}
+
+/* ============================================================
+   LEDGER MATCH — your books vs the customer's own ledger
+   ============================================================ */
+// Build my side as comparable lines (absolute amounts + side label)
+function myLines(p){
+  return state.ledger.filter(l=>l.partyId===p.id).map(l=>({
+    id:l.id, date:l.date, particulars:l.particulars,
+    amount:(+l.debit||0)+(+l.credit||0), side:l.debit?'Dr':'Cr'
+  }));
+}
+function theirLines(p){ return (state.recon[p.id]&&state.recon[p.id].entries)||[]; }
+function reconMeta(p){ const r=state.recon[p.id]||{}; return {theirBalance:r.theirBalance, asOf:r.asOf}; }
+function setRecon(pid, patch){ state.recon[pid]=Object.assign({entries:[]}, state.recon[pid]||{}, patch); save('recon'); }
+
+// pure matching: equal amount (abs), nearest date
+function matchLedgers(mine, theirs){
+  const M=mine.map(x=>({...x,_u:false})), T=theirs.map(x=>({...x,_u:false}));
+  const pairs=[];
+  M.forEach(m=>{
+    let best=null,bestD=Infinity;
+    T.forEach(t=>{ if(t._u)return; if(Math.abs((+m.amount)-(+t.amount))>0.01)return;
+      const d=Math.abs(daysBetween(t.date,m.date)); if(d<bestD){bestD=d;best=t;} });
+    if(best){best._u=true;m._u=true;pairs.push([m.id,best.id]);}
+  });
+  return {pairs, unMine:M.filter(x=>!x._u), unTheirs:T.filter(x=>!x._u)};
+}
+function reconStatus(p){
+  const meta=reconMeta(p);
+  if(meta.theirBalance==null) return {label:'Not checked', tone:'neutral', diff:null};
+  const diff=partyBalance(p)-(+meta.theirBalance||0);
+  return {label: Math.abs(diff)<1?'Agreed':'Difference', tone: Math.abs(diff)<1?'ok':'bad', diff};
+}
+
+let openMatchParty=null, matchSearch='';
+function viewMatch(v){
+  if(openMatchParty) return matchDetail(v, state.parties.find(p=>p.id===openMatchParty));
+  v.append(el('div',{class:'page-head'},
+    el('div',{}, el('div',{class:'eyebrow'},'Account confirmation'),
+      el('h1',{},'Ledger Match'),
+      el('p',{},'Compare what YOUR books say each customer owes against what THEIR ledger says. Catch missing entries and balance disputes before they cost you.')),
+  ));
+  if(!state.parties.length){ v.append(card('Customers', emptyEl('⇌','No customers yet','Add customers in the Customer Ledgers tab first.'))); return; }
+
+  const checked=state.parties.filter(p=>reconMeta(p).theirBalance!=null);
+  const agreed=checked.filter(p=>{const d=partyBalance(p)-(+reconMeta(p).theirBalance||0);return Math.abs(d)<1;});
+  const totalGap=checked.reduce((s,p)=>s+(partyBalance(p)-(+reconMeta(p).theirBalance||0)),0);
+  v.append(el('div',{class:'grid g4',style:'margin-bottom:18px'},
+    stat('Customers',state.parties.length+'','Total accounts'),
+    stat('Checked',checked.length+'',checked.length+' of '+state.parties.length),
+    stat('In agreement',agreed.length+'',(checked.length-agreed.length)+' with gaps',(checked.length-agreed.length)===0?'ok':'warn'),
+    stat('Net difference',money(totalGap),Math.abs(totalGap)<1?'✓ All square':'To investigate',Math.abs(totalGap)<1?'ok':'bad')
+  ));
+  v.append(el('div',{style:'margin-bottom:14px'},el('input',{class:'search',placeholder:'Search customer…',value:matchSearch,oninput:e=>{matchSearch=e.target.value;renderView();}})));
+  const q=matchSearch.toLowerCase();
+  const rows=state.parties.filter(p=>!q||p.name.toLowerCase().includes(q)).map(p=>{
+    const st=reconStatus(p), meta=reconMeta(p);
+    return [ p.name,
+      {html:`<span class="num">${money(partyBalance(p))}</span>`,cls:'right'},
+      {html: meta.theirBalance!=null?`<span class="num">${money(meta.theirBalance)}</span>`:'<span class="muted">—</span>',cls:'right'},
+      {html: st.diff!=null?`<span class="num" style="${Math.abs(st.diff)<1?'':'color:var(--bad)'}">${money(st.diff)}</span>`:'<span class="muted">—</span>',cls:'right'},
+      {html:`<span class="chip ${st.tone}">${st.label}</span>`},
+      {html:`<button class="btn sm gold" onclick="window.__openMatch('${p.id}')">reconcile</button>`,cls:'right'} ];
+  });
+  v.append(card('Customer accounts — mine vs theirs',
+    tableEl(['Customer',{label:'My balance',cls:'right'},{label:'Their balance',cls:'right'},{label:'Difference',cls:'right'},'Status',{label:'',cls:'right'}], rows)));
+}
+window.__openMatch=id=>{openMatchParty=id;current='match';renderNav();renderView();};
+
+function matchDetail(v,p){
+  if(!p){openMatchParty=null;return renderView();}
+  const meta=reconMeta(p);
+  v.append(el('div',{class:'page-head'},
+    el('div',{}, el('a',{href:'#',class:'eyebrow',onclick:e=>{e.preventDefault();openMatchParty=null;renderView();}},'← All accounts'),
+      el('h1',{},p.name),
+      el('p',{},'Match your ledger against '+p.name+'’s own statement.')),
+    el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},
+      el('button',{class:'btn ghost',onclick:()=>openScanForExternal(p)},'⛶ Scan their statement'),
+      el('button',{class:'btn gold',onclick:()=>openExtEntryModal(p)},'＋ Add their entry'))
+  ));
+
+  const myBal=partyBalance(p), theirBal=meta.theirBalance;
+  const diff = theirBal!=null ? myBal-(+theirBal||0) : null;
+  v.append(el('div',{class:'grid g3',style:'margin-bottom:16px'},
+    stat('My books say',money(myBal),'They owe you'),
+    stat('Their ledger says',theirBal!=null?money(theirBal):'—', meta.asOf?('as of '+meta.asOf):'enter below'),
+    stat('Difference',diff!=null?money(diff):'—', diff==null?'not checked':Math.abs(diff)<1?'✓ Agreed':'Investigate', diff==null?'neutral':Math.abs(diff)<1?'ok':'bad')
+  ));
+
+  // their closing balance input
+  const balBody=el('div',{class:'bd'});
+  const f={bal: theirBal!=null?theirBal:'', asOf: meta.asOf||todayISO()};
+  balBody.append(el('div',{class:'row'},
+    el('div',{class:'field'},el('label',{},'Balance their statement shows you’re owed'),el('input',{type:'number',step:'0.01',value:f.bal,placeholder:'e.g. 480000',oninput:e=>f.bal=e.target.value})),
+    el('div',{class:'field'},el('label',{},'Their statement date'),el('input',{type:'date',value:f.asOf,oninput:e=>f.asOf=e.target.value})),
+    el('div',{class:'field'},el('label',{},'\u00A0'),el('button',{class:'btn',onclick:()=>{setRecon(p.id,{theirBalance:f.bal===''?null:(+f.bal),asOf:f.asOf});renderView();toast('✓ Saved their balance');}},'Save'))));
+  v.append(card('Their closing balance', balBody,
+    el('span',{class:'muted',style:'font-size:12px'},'Type the figure from the statement they sent you')));
+
+  // matching
+  const mine=myLines(p), theirs=theirLines(p);
+  const res=matchLedgers(mine,theirs);
+  const byId=(arr,id)=>arr.find(x=>x.id===id);
+  v.append(el('div',{style:'margin-top:16px'},card('Matched entries ('+res.pairs.length+')',
+    res.pairs.length?tableEl([{label:'Your date',cls:''},'Particulars',{label:'Amount',cls:'right'},{label:'Their date',cls:'right'}],
+      res.pairs.map(([mId,tId])=>{const m=byId(mine,mId),t=byId(theirs,tId);return [m.date,m.particulars,{html:`<span class="num">${money(m.amount)}</span>`,cls:'right'},{html:`<span class="num muted">${t.date}</span>`,cls:'right'}];}))
+    :emptyEl('⇌','Nothing matched yet','Add or scan their entries to compare.'))));
+
+  v.append(el('div',{class:'grid g2',style:'margin-top:16px'},
+    card('In YOUR books only ('+res.unMine.length+')',
+      res.unMine.length?tableEl(['Date','Particulars',{label:'Amount',cls:'right'}],res.unMine.map(m=>[m.date,m.particulars,{html:`<span class="num">${money(m.amount)}</span>`,cls:'right'}]))
+      :emptyEl('✓','All accounted for','Every entry of yours is on their statement too.')),
+    card('On THEIR statement only ('+res.unTheirs.length+')',
+      res.unTheirs.length?tableEl(['Date','Particulars',{label:'Amount',cls:'right'},{label:'',cls:'right'}],res.unTheirs.map(t=>[t.date,t.particulars,{html:`<span class="num">${money(t.amount)}</span>`,cls:'right'},{html:`<button class="btn sm danger" onclick="window.__delExt('${p.id}','${t.id}')">✕</button>`,cls:'right'}]))
+      :emptyEl('✓','Nothing extra','Their statement has no entries missing from yours.'))
+  ));
+  v.append(el('div',{class:'banner '+(diff==null?'warn':Math.abs(diff||0)<1?'ok':'bad'),style:'margin-top:16px'},
+    el('span',{class:'ic'},diff==null?'?':Math.abs(diff||0)<1?'✓':'!'),
+    el('div',{}, diff==null?'Enter their closing balance above to see whether your books agree.'
+      : Math.abs(diff)<1?'Your books and their statement agree. No action needed.'
+      : el('span',{}, el('strong',{},'Gap of '+money(Math.abs(diff))+'. '),'Check the “only” lists above — those entries explain the difference (a missing payment, a sale they haven’t recorded, or a timing difference).'))));
+}
+window.__delExt=(pid,id)=>{const r=state.recon[pid];if(!r)return;r.entries=(r.entries||[]).filter(e=>e.id!==id);save('recon');renderView();};
+
+function openExtEntryModal(p){
+  const f={date:todayISO(),particulars:'',amount:''};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  body.append(el('p',{class:'muted',style:'margin-top:0'},'Add a line exactly as it appears on '+p.name+'’s statement.'),
+    mk('Date',el('input',{type:'date',value:f.date,oninput:e=>f.date=e.target.value})),
+    mk('Particulars',el('input',{placeholder:'e.g. Payment received / Goods',oninput:e=>f.particulars=e.target.value})),
+    mk('Amount',el('input',{type:'number',step:'0.01',placeholder:'0.00',oninput:e=>f.amount=e.target.value})),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{const amt=Math.abs(parseFloat(f.amount)||0);if(!amt){toast('Enter an amount');return;}setRecon(p.id,{});state.recon[p.id].entries.push({id:uid(),date:f.date,particulars:f.particulars||'(entry)',amount:amt});save('recon');closeModal();renderView();toast('✓ Added their entry');}},'Add entry'));
+  showModal('Add their ledger entry',body);
+}
+
+// scan the statement the customer sent, route results into their external ledger
+let extScanResult=null, extScanFile=null;
+function openScanForExternal(p){
+  extScanResult=null;extScanFile=null;
+  const body=el('div',{class:'bd',id:'extScanBody'});
+  drawExtScan(p,body);
+  showModal('Scan '+p.name+'’s statement',body);
+}
+function drawExtScan(p,body){
+  body.innerHTML='';
+  if(!extScanFile){
+    const inp=el('input',{type:'file',accept:'image/*,application/pdf',style:'display:none',onchange:e=>{if(e.target.files[0]){extScanFile=e.target.files[0];drawExtScan(p,body);}}});
+    const dz=el('div',{class:'drop'},el('div',{class:'big'},'Choose the statement they sent'),el('div',{class:'muted',style:'margin-top:6px'},'Photo, screenshot or PDF'));
+    dz.addEventListener('click',()=>inp.click());
+    body.append(dz,inp);
+    return;
+  }
+  if(!extScanResult){
+    body.append(el('div',{class:'banner ok'},el('span',{class:'ic'},'❏'),el('div',{},extScanFile.name)),
+      el('button',{class:'btn',style:'width:100%;margin-top:12px',id:'extReadBtn',onclick:async()=>{
+        const b=$('#extReadBtn');b.disabled=true;b.innerHTML='<span class="spinner"></span> Reading…';
+        try{extScanResult=await extractDocument(extScanFile);drawExtScan(p,body);}
+        catch(err){b.disabled=false;b.innerHTML='Read statement';toast('Could not read: '+(err.message||'error'));}
+      }},'Read statement'));
+    return;
+  }
+  const r=extScanResult, poor=r.needs_resend||r.image_quality==='poor'||(r.overall_confidence??100)<60;
+  if(poor){
+    body.append(el('div',{class:'banner warn'},el('span',{class:'ic'},'📷'),el('div',{},el('strong',{},'Too blurry to trust. '),(r.quality_notes||'')+' Please send a clearer photo.')),
+      el('button',{class:'btn ghost',style:'width:100%;margin-top:12px',onclick:()=>{extScanFile=null;extScanResult=null;drawExtScan(p,body);}},'Try another file'));
+    return;
+  }
+  const entries=(r.entries||[]).map(e=>({id:uid(),date:e.date||todayISO(),particulars:e.description||'(entry)',amount:Math.abs((+e.debit||0)||(+e.credit||0)||(+e.money_in||0)||(+e.money_out||0)),confidence:e.confidence}));
+  extScanResult._mapped=entries;
+  const t=el('table');t.append(el('thead',{},el('tr',{},[el('th',{},'Date'),el('th',{},'Particulars'),el('th',{class:'right'},'Amount'),el('th',{class:'center'},'Sure?')])));
+  const tb=el('tbody');
+  entries.forEach(e=>{ tb.append(el('tr',{}, el('td',{},e.date), el('td',{},e.particulars), el('td',{class:'right num'},fmtN(e.amount)), el('td',{class:'center',html:confBar(e.confidence)}) )); });
+  t.append(tb);
+  body.append(el('div',{class:'banner ok',style:'margin-bottom:12px'},el('span',{class:'ic'},'✓'),el('div',{},'Read '+entries.length+' line(s). Review, then add to '+p.name+'’s ledger.')),t,
+    el('div',{style:'display:flex;gap:8px;margin-top:14px'},
+      el('button',{class:'btn',onclick:()=>{setRecon(p.id,{});state.recon[p.id].entries=(state.recon[p.id].entries||[]).concat(entries.map(({confidence,...e})=>e));save('recon');closeModal();renderView();toast('✓ Added '+entries.length+' entries');}},'Add to their ledger'),
+      el('button',{class:'btn ghost',onclick:()=>{extScanFile=null;extScanResult=null;drawExtScan(p,body);}},'Start over')));
+}
+
+/* ============================================================
+   EXPENSES / CASH BOOK
+   ============================================================ */
+const EXP_CATS=['Raw material','Packaging','Tin / containers','Freight & logistics','Salaries','Utilities','Rent','Marketing','Office','Bank charges','Other'];
+let expSearch='';
+function viewExpenses(v){
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Cash book'),el('h1',{},'Expenses'),el('p',{},'Log every cost — raw materials, tins, freight, salaries. These feed the profit & loss report.')),el('button',{class:'btn gold',onclick:openExpenseModal},'＋ Add expense')));
+  const total=state.expenses.reduce((s,e)=>s+(+e.amount||0),0),month=monthExpenses();
+  v.append(el('div',{class:'grid g3',style:'margin-bottom:18px'},stat('This month',money(month),'Spent'),stat('All time',money(total),state.expenses.length+' entries'),stat('Categories',new Set(state.expenses.map(e=>e.category)).size+'','In use')));
+  if(!state.expenses.length){v.append(card('Expenses',emptyEl('⊖','No expenses yet','Add your first cost.')));return;}
+  v.append(el('div',{style:'margin-bottom:14px'},el('input',{class:'search',placeholder:'Search description or category…',value:expSearch,oninput:e=>{expSearch=e.target.value;renderView();}})));
+  const q=expSearch.toLowerCase();
+  const rows=[...state.expenses].sort((a,b)=>new Date(b.date)-new Date(a.date)).filter(e=>!q||(e.desc||'').toLowerCase().includes(q)||(e.category||'').toLowerCase().includes(q)).map(e=>[e.date,{html:`<span class="chip neutral">${e.category}</span>`},e.desc||'—',e.method||'—',{html:`<span class="num">${money(e.amount)}</span>`,cls:'right'},{html:`<button class="btn sm danger" onclick="window.__delExp('${e.id}')">✕</button>`,cls:'right'}]);
+  v.append(card('Expenses',tableEl(['Date','Category','Description','Method',{label:'Amount',cls:'right'},{label:'',cls:'right'}],rows)));
+}
+window.__delExp=id=>{state.expenses=state.expenses.filter(e=>e.id!==id);save('expenses');renderView();toast('Expense removed');};
+function openExpenseModal(){
+  const f={date:todayISO(),category:EXP_CATS[0],desc:'',amount:'',method:'Cash'};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  const cat=el('select',{onchange:e=>f.category=e.target.value});EXP_CATS.forEach(c=>cat.append(el('option',{},c)));
+  const meth=el('select',{onchange:e=>f.method=e.target.value});['Cash','Bank transfer','Cheque','Card','Other'].forEach(m=>meth.append(el('option',{},m)));
+  body.append(el('div',{class:'row'},mk('Date',el('input',{type:'date',value:f.date,oninput:e=>f.date=e.target.value})),mk('Category',cat)),mk('Description',el('input',{placeholder:'e.g. 25 MT tin plate — China',oninput:e=>f.desc=e.target.value})),el('div',{class:'row'},mk('Amount',el('input',{type:'number',step:'0.01',placeholder:'0.00',oninput:e=>f.amount=e.target.value})),mk('Paid via',meth)),
+    el('button',{class:'btn',style:'width:100%',onclick:()=>{const amt=parseFloat(f.amount)||0;if(!amt){toast('Enter an amount');return;}state.expenses.push({id:uid(),date:f.date,category:f.category,desc:f.desc,amount:amt,method:f.method});save('expenses');closeModal();renderView();toast('✓ Expense logged');}},'Add expense'));
+  showModal('Add expense',body);
+}
+
+/* ============================================================
+   REPORTS  (P&L, aging, top customers)
+   ============================================================ */
+function viewReports(v){
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Insight'),el('h1',{},'Reports'),el('p',{},'A quick read on profitability and who owes you. Income counts payments received; expenses count cash out.')),el('button',{class:'btn ghost',onclick:()=>window.print()},'🖶 Print')));
+  const income=state.invoices.reduce((s,i)=>s+paidAmount(i),0);
+  const billed=state.invoices.reduce((s,i)=>s+invoiceTotal(i),0);
+  const expense=state.expenses.reduce((s,e)=>s+(+e.amount||0),0);
+  const net=income-expense;
+  v.append(el('div',{class:'grid g4',style:'margin-bottom:18px'},stat('Income (received)',money(income),'From paid invoices'),stat('Expenses',money(expense),'Cash out'),stat('Net profit',money(net),net>=0?'In the black':'In the red',net>=0?'ok':'bad'),stat('Still to collect',money(billed-income),'Unpaid invoices',billed-income>0?'warn':'ok')));
+  // aging
+  const a=agingBuckets();
+  v.append(el('div',{class:'grid g2'},
+    card('Receivables aging',tableEl(['Bucket','Amount'],[['Not due yet',{html:`<span class="num">${money(a.current)}</span>`,cls:'right'}],['1–30 days',{html:`<span class="num">${money(a.d30)}</span>`,cls:'right'}],['31–60 days',{html:`<span class="num">${money(a.d60)}</span>`,cls:'right'}],['60+ days',{html:`<span class="num" style="color:var(--bad)">${money(a.d90)}</span>`,cls:'right'}]])),
+    card('Expenses by category',expense>0?tableEl(['Category','Amount'],expByCategory()):emptyEl('—','No expenses','Log some costs first.'))
+  ));
+  v.append(el('div',{style:'margin-top:16px'},card('Top customers by balance',partyBalances().length?tableEl(['Customer','Balance'],partyBalances().slice(0,10).map(p=>[p.name,{html:`<span class="num">${money(p.bal)}</span>`,cls:'right'}])):emptyEl('☷','No balances','Add customers and invoices.'))));
+}
+function expByCategory(){const m={};state.expenses.forEach(e=>m[e.category]=(m[e.category]||0)+(+e.amount||0));return Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([c,a])=>[c,{html:`<span class="num">${money(a)}</span>`,cls:'right'}]);}
+
+/* ============================================================
+   SETTINGS  (incl. PIN change, backup/restore)
+   ============================================================ */
+function viewSettings(v){
+  v.append(el('div',{class:'page-head'},el('div',{},el('div',{class:'eyebrow'},'Configuration'),el('h1',{},'Settings'))));
+  const s=state.settings;const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  const bind=k=>el('input',{value:s[k]||'',oninput:e=>s[k]=e.target.value});
+  // logo
+  const logoPrev=el('div',{style:'display:flex;align-items:center;gap:12px'});
+  function drawLogo(){logoPrev.innerHTML='';if(s.logo)logoPrev.append(el('img',{src:s.logo,alt:'logo',style:'height:48px;border:1px solid var(--line);border-radius:6px;padding:2px;background:#fff'}));else logoPrev.append(el('span',{class:'muted',style:'font-size:12.5px'},'No logo set'));}
+  const logoInp=el('input',{type:'file',accept:'image/*',style:'display:none',onchange:e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{s.logo=r.result;drawLogo();};r.readAsDataURL(f);}});
+  drawLogo();
+  logoPrev.append(el('button',{class:'btn ghost sm',onclick:()=>logoInp.click()},'Upload logo'),s.logo?el('button',{class:'btn danger sm',onclick:()=>{s.logo='';drawLogo();}},'Remove'):'',logoInp);
+
+  body.append(
+    el('div',{class:'field'},el('label',{},'Company logo (shown on invoices)'),logoPrev),
+    el('div',{class:'row'},mk('Company name',bind('company')),mk('Tagline',bind('tagline'))),
+    mk('Address',bind('address')),
+    el('div',{class:'row'},mk('Phone',bind('phone')),mk('Email',bind('email')),mk('Website',bind('website'))),
+    el('div',{class:'row'},mk('NTN (tax no.)',bind('ntn')),mk('STRN (sales tax reg.)',bind('strn'))),
+    el('div',{style:'font-size:12px;font-weight:600;color:#444;margin:6px 0 4px'},'Bank details (printed on invoices)'),
+    el('div',{class:'row'},mk('Bank name',bind('bankName')),mk('Account no.',bind('bankAccount')),mk('IBAN',bind('bankIban'))),
+    mk('Default invoice terms / footer note',el('textarea',{rows:'2',oninput:e=>s.invoiceTerms=e.target.value},s.invoiceTerms||'')),
+    el('div',{class:'row'},
+      mk('Currency',(()=>{const sel=el('select',{onchange:e=>s.currency=e.target.value});['PKR','MYR','OMR','USD','AED','SAR','EUR','GBP','INR'].forEach(c=>{const o=el('option',{value:c},c);if(c===s.currency)o.selected=true;sel.append(o);});return sel;})()),
+      mk('Default tax %',el('input',{type:'number',step:'0.01',value:s.taxRate,oninput:e=>s.taxRate=+e.target.value}))),
+    el('div',{style:'display:flex;gap:8px'},
+      el('button',{class:'btn',onclick:()=>{save('settings');renderView();toast('✓ Company profile saved');}},'Save profile'),
+      el('button',{class:'btn ghost',onclick:()=>{if(state.invoices[0])showInvoice(state.invoices[0]);else toast('Create an invoice first to preview');}},'Preview on an invoice'))
+  );
+  v.append(card('Company profile — for invoices',body,el('span',{class:'muted',style:'font-size:12px'},'This appears as the letterhead')));
+  // security
+  const sec=el('div',{class:'bd'});
+  sec.append(el('p',{class:'muted',style:'margin-top:0'},'The PIN locks the app on this device. It’s good for keeping casual viewers out — for full protection of company data, host this behind a proper server login.'),el('button',{class:'btn ghost',onclick:openChangePin},'Change PIN'));
+  v.append(el('div',{style:'margin-top:16px'},card('Security',sec)));
+  // data
+  const dataBody=el('div',{class:'bd'});
+  dataBody.append(el('p',{class:'muted',style:'margin-top:0'},'Back up regularly. Restore replaces all current data with the backup file.'));
+  const restoreInp=el('input',{type:'file',accept:'application/json',style:'display:none',onchange:e=>{if(e.target.files[0])restoreData(e.target.files[0]);}});
+  dataBody.append(el('div',{style:'display:flex;gap:8px;flex-wrap:wrap'},el('button',{class:'btn gold',onclick:loadDemoData},'✦ Load sample data (for demos)'),el('button',{class:'btn',onclick:exportData},'⬇ Backup (JSON)'),el('button',{class:'btn ghost',onclick:()=>restoreInp.click()},'⬆ Restore from backup'),el('button',{class:'btn danger',onclick:()=>{if(confirm('Clear ALL bank & book entries?')){state.bank=[];state.books=[];save('bank');save('books');renderView();toast('Cleared');}}},'Clear reconciliation'),el('button',{class:'btn danger',onclick:()=>{if(confirm('Delete ALL data? This cannot be undone.')){['bank','books','invoices','parties','ledger','expenses'].forEach(k=>{state[k]=[];save(k);});state.recon={};save('recon');renderView();toast('All data cleared');}}},'Delete everything')),restoreInp);
+  v.append(el('div',{style:'margin-top:16px'},card('Your data',dataBody)));
+}
+function exportData(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=el('a',{href:URL.createObjectURL(blob),download:'ledger-desk-backup-'+todayISO()+'.json'});document.body.append(a);a.click();a.remove();toast('✓ Backup downloaded');}
+function loadDemoData(){
+  if(!confirm('Load sample Sheikh Oil data for a demo? This adds example customers, invoices, a ledger and expenses on top of what you have now.'))return;
+  const pUK=uid(),pAK=uid(),pOM=uid();
+  state.parties.push(
+    {id:pUK,name:'UK Traders',kind:'Supplier',phone:'',opening:73806930},
+    {id:pAK,name:'Al-Karam Distributors',kind:'Customer',phone:'0300-1234567',opening:0},
+    {id:pOM,name:'Oman Foodstuff LLC',kind:'Customer',phone:'',opening:0}
+  );
+  // UK Traders ledger — exactly the scanned page (supplier / credit account), reproduces Cr 81,462,868
+  [['2026-06-05','O/L Paid 7978',0,2100000],
+   ['2026-06-05','O/L Paid 8517',0,3900000],
+   ['2026-06-09','Mg chg BAF 3331',0,6500000],
+   ['2026-06-09','Mg chg BAF 2228',0,6500000],
+   ['2026-06-06','Vacuum 30,210 kg — TTC-619',13654920,0],
+   ['2026-06-08','Olein 30,000 kg — GLTA4775',13001018,0]
+  ].forEach(([d,p,deb,cre])=>state.ledger.push({id:uid(),partyId:pUK,date:d,particulars:p,debit:deb,credit:cre,ref:'',kind:'manual'}));
+  // invoices
+  const inv1={id:uid(),number:nextInvoiceNo(),date:'2026-06-02',dueDate:'2026-06-09',party:'Al-Karam Distributors',
+    items:[{desc:'Corn Supreme 5L — carton',qty:200,rate:4200},{desc:"O'Life 1L pouch — carton",qty:120,rate:2650}],taxRate:0,notes:'',payments:[]};
+  state.invoices.push(inv1);postInvoiceToLedger(inv1);
+  const inv2={id:uid(),number:nextInvoiceNo(),date:'2026-05-20',dueDate:'2026-05-27',party:'Oman Foodstuff LLC',
+    items:[{desc:'Al-Karam Cooking Oil 16L tin',qty:500,rate:5400}],taxRate:0,notes:'Export consignment — Sohar',
+    payments:[{id:uid(),date:'2026-05-28',amount:1000000,method:'Bank transfer'}]};
+  state.invoices.push(inv2);postInvoiceToLedger(inv2);syncPaymentsToLedger(inv2);
+  // expenses
+  [['2026-06-01','Tin / containers','25 MT tin plate — China (EFS)',8200000,'Bank transfer'],
+   ['2026-06-03','Freight & logistics','Inland freight — Karachi port',180000,'Cash'],
+   ['2026-06-05','Packaging','HDPE resin — SABIC',2600000,'Bank transfer'],
+   ['2026-06-10','Salaries','Mill staff — June',900000,'Cash']
+  ].forEach(([d,c,ds,a,m])=>state.expenses.push({id:uid(),date:d,category:c,desc:ds,amount:a,method:m}));
+  // bank vs books sample (one matches, one doesn't — shows reconciliation)
+  state.bank.push({id:uid(),date:'2026-05-28',desc:'Inward TT — Oman Foodstuff',ref:'TT5521',amount:1000000,matchedId:null,source:'demo'});
+  state.books.push({id:uid(),date:'2026-05-28',desc:'Payment recd — Oman Foodstuff',ref:'TT5521',amount:1000000,matchedId:null,source:'demo'});
+  state.bank.push({id:uid(),date:'2026-06-04',desc:'Bank charges',ref:'',amount:-3500,matchedId:null,source:'demo'});
+  // ledger-match example: Al-Karam's statement is 150,000 short of ours
+  const akBal=partyBalance(state.parties.find(p=>p.id===pAK));
+  setRecon(pAK,{theirBalance:akBal-150000,asOf:'2026-06-10',entries:[]});
+  saveAll();toast('✓ Sample data loaded');current='dashboard';openParty=null;openMatchParty=null;renderNav();renderView();
+}
+function restoreData(file){const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!d||typeof d!=='object')throw new Error('bad');['settings','bank','books','invoices','parties','ledger','expenses'].forEach(k=>{if(d[k]!=null)state[k]=d[k];});saveAll();renderView();toast('✓ Data restored');}catch(e){toast('⚠ Not a valid backup file');}};r.readAsText(file);}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function showModal(title,bodyNode,bare){const root=$('#modalRoot');const c=el('div',{class:'modal'});if(!bare&&title)c.append(el('div',{class:'hd'},el('h3',{},title),el('button',{class:'btn ghost sm',onclick:closeModal},'✕')));c.append(bodyNode);const bg=el('div',{class:'modal-bg',onclick:e=>{if(e.target===bg)closeModal();}},c);root.innerHTML='';root.append(bg);}
+function closeModal(){$('#modalRoot').innerHTML='';}
+
+/* ============================================================
+   PIN LOCK
+   ============================================================ */
+function lockNow(){renderLock();}
+function renderLock(setup){
+  $('#root').innerHTML='';
+  const card=el('div',{class:'lockcard'});
+  card.append(el('div',{class:'mk'},'Ledger Desk ',el('span',{class:'dot'})));
+  card.append(el('div',{class:'muted',style:'margin-top:6px;font-size:13px'},setup?'Set a PIN to protect your books':'Enter your PIN'));
+  const inp=el('input',{class:'pininp',type:'password',inputmode:'numeric',maxlength:'12',placeholder:'••••',
+    onkeydown:e=>{if(e.key==='Enter')submit();}});
+  const inp2=setup?el('input',{class:'pininp',type:'password',inputmode:'numeric',maxlength:'12',placeholder:'confirm',style:'margin-top:10px',onkeydown:e=>{if(e.key==='Enter')submit();}}):null;
+  const msg=el('div',{style:'color:var(--bad);font-size:12.5px;min-height:16px;margin-top:8px'});
+  async function submit(){
+    const pin=inp.value.trim();
+    if(setup){
+      if(pin.length<4){msg.textContent='Use at least 4 digits';return;}
+      if(pin!==inp2.value.trim()){msg.textContent='PINs don’t match';return;}
+      const salt=uid()+uid();const hash=await sha256(salt+pin);await DB.set('auth',{salt,hash});unlock();
+    } else {
+      const auth=await DB.get('auth',null);if(!auth){renderLock(true);return;}
+      const hash=await sha256(auth.salt+pin);
+      if(hash===auth.hash)unlock();else{msg.textContent='Wrong PIN — try again';inp.value='';inp.focus();}
+    }
+  }
+  card.append(inp);if(inp2)card.append(inp2);
+  card.append(el('button',{class:'btn',style:'width:100%;margin-top:14px',onclick:submit},setup?'Set PIN & continue':'Unlock'));
+  card.append(msg);
+  if(setup)card.append(el('div',{class:'muted',style:'font-size:11px;margin-top:10px;line-height:1.4'},'This keeps casual viewers out. It is not a substitute for hosting behind a real login for sensitive company data.'));
+  $('#root').append(el('div',{class:'lock'},card));
+  setTimeout(()=>inp.focus(),50);
+}
+function unlock(){renderShell();}
+function openChangePin(){
+  const f={cur:'',n1:'',n2:''};const body=el('div',{class:'bd'});const mk=(l,n)=>el('div',{class:'field'},el('label',{},l),n);
+  body.append(mk('Current PIN',el('input',{type:'password',oninput:e=>f.cur=e.target.value})),mk('New PIN (4+ digits)',el('input',{type:'password',oninput:e=>f.n1=e.target.value})),mk('Confirm new PIN',el('input',{type:'password',oninput:e=>f.n2=e.target.value})),
+    el('button',{class:'btn',style:'width:100%',onclick:async()=>{const auth=await DB.get('auth',null);const curHash=await sha256(auth.salt+f.cur.trim());if(curHash!==auth.hash){toast('Current PIN is wrong');return;}if(f.n1.trim().length<4){toast('New PIN too short');return;}if(f.n1.trim()!==f.n2.trim()){toast('New PINs don’t match');return;}const salt=uid()+uid();const hash=await sha256(salt+f.n1.trim());await DB.set('auth',{salt,hash});closeModal();toast('✓ PIN changed');}},'Change PIN'));
+  showModal('Change PIN',body);
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+async function boot(){
+  await loadAll();
+  const auth=await DB.get('auth',null);
+  if(!auth)renderLock(true); else renderLock(false);
+}
+if(IS_BROWSER) boot();
+
+/* ---------- exports for testing (Node) ---------- */
+if(typeof module!=='undefined'){module.exports={state,invoiceTotal,invoiceSub,paidAmount,invoiceOutstanding,invoiceStatus,nextInvoiceNo,computeMatches,partyBalance,agingBuckets,money,sha256,matchLedgers,ledgerCheck};}
+</script>
+</body>
+</html>
